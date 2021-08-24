@@ -1,0 +1,57 @@
+{
+  "name": "blockchain-explorer",
+  "version": "1.0.0",
+  "description": "UI to explore tokens & transcations across all blockchain scanners like etherscan, bscscan, polygonscan etc with a simple interface",
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/biswabijaya/blockchain-explorer.git"
+  },
+  "author": "Biswabijaya Samal",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/biswabijaya/blockchain-explorer/issues"
+  },
+  "homepage": "https://github.com/biswabijaya/blockchain-explorer#readme",
+  "keywords": [
+    "blockchain explorer",
+    "blockchain scanner",
+    "polygon",
+    "binance",
+    "etherscab",
+    "polygonscan",
+    "bscscan",
+    "transaction"
+  ],
+  "dependencies": {
+    "bscscan-api": "^1.0.1",
+    "erc20-contract-js": "^1.1.1",
+    "etherscan-api": "10.0.5",
+    "ethplorer-js": "^0.0.7",
+    "moment": "^2.29.1",
+    "blockchain-explorer": "^1.0.1",
+    "react": "^16.4.1",
+    "react-dom": "^16.4.1",
+    "react-scripts": "^4.0.3",
+    "semantic-ui-react": "^0.81.1",
+    "web3": "^1.5.1"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test --env=jsdom",
+    "eject": "react-scripts eject"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
