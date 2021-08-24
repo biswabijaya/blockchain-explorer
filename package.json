@@ -12,7 +12,6 @@
   "bugs": {
     "url": "https://github.com/biswabijaya/blockchain-explorer/issues"
   },
-  "homepage": "https://github.com/biswabijaya/blockchain-explorer#readme",
   "keywords": [
     "blockchain explorer",
     "blockchain scanner",
@@ -25,11 +24,11 @@
   ],
   "dependencies": {
     "bscscan-api": "^1.0.1",
+    "polygonscan-api": "^1.0.3",
     "erc20-contract-js": "^1.1.1",
     "etherscan-api": "10.0.5",
     "ethplorer-js": "^0.0.7",
     "moment": "^2.29.1",
-    "blockchain-explorer": "^1.0.1",
     "react": "^16.4.1",
     "react-dom": "^16.4.1",
     "react-scripts": "^4.0.3",
