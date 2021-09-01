@@ -22,61 +22,73 @@ import TabbedContent from './containers/TabbedContent'
 
 const MAX_COUNT = 200
 var addr = '', uniqueTokens = {}, uniqueAddress = {};
+
 uniqueAddress['0x618ffd1cdabee36ce5992a857cc7463f21272bd7'.toLowerCase()] = {
+  'address':'0x618ffd1cdabee36ce5992a857cc7463f21272bd7'.toLowerCase(),
   'name': 'WazirX',
   'type': 'Exchange',
   'tags': ['Exchange']
 };
 
+
 uniqueAddress['0x9696f59E4d72E237BE84fFD425DCaD154Bf96976'.toLowerCase()] = {
+  'address':'0x9696f59E4d72E237BE84fFD425DCaD154Bf96976'.toLowerCase(),
   'name': 'Binance',
   'type': 'Exchange',
   'tags': ['Exchange']
 };
 
 uniqueAddress['0x6B3595068778DD592e39A122f4f5a5cF09C90fE2'.toLowerCase()] = {
+  'address':'0x6B3595068778DD592e39A122f4f5a5cF09C90fE2'.toLowerCase(),
   'name': 'SushiSwap',
   'type': 'Application',
   'tags': []
 };
 
 uniqueAddress['0xc2edad668740f1aa35e4d8f227fb8e17dca888cd'.toLowerCase()] = {
+  'address':'0xc2edad668740f1aa35e4d8f227fb8e17dca888cd'.toLowerCase(),
   'name': 'SushiSwap: MasterChef LP Staking Pool',
   'type': 'Application',
   'tags': ['Staking', 'Yield Farming']
 };
 
 uniqueAddress['0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F'.toLowerCase()] = {
+  'address':'0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F'.toLowerCase(),
   'name': 'SushiSwap: Router',
   'type': 'Application',
   'tags': ['Liquidity']
 };
 
 uniqueAddress['0x795065dCc9f64b5614C407a6EFDC400DA6221FB0'.toLowerCase()] = {
+  'address':'0x795065dCc9f64b5614C407a6EFDC400DA6221FB0'.toLowerCase(),
   'name': 'SushiSwap: SUSHI',
   'type': 'Application',
   'tags': ['Swapping']
 };
 
 uniqueAddress['0xC3D03e4F041Fd4cD388c549Ee2A29a9E5075882f'.toLowerCase()] = {
+  'address':'0xC3D03e4F041Fd4cD388c549Ee2A29a9E5075882f'.toLowerCase(),
   'name': 'SushiSwap: DAI',
   'type': 'Application',
   'tags': ['Swapping']
 };
 
 uniqueAddress['0x881D40237659C251811CEC9c364ef91dC08D300C'.toLowerCase()] = {
+  'address':'0x881D40237659C251811CEC9c364ef91dC08D300C'.toLowerCase(),
   'name': 'Metamask: Swap Router',
   'type': 'Application',
   'tags': ['Swapping']
 };
 
 uniqueAddress['0x74de5d4fcbf63e00296fd95d33236b9794016631'.toLowerCase()] = {
+  'address':'0x74de5d4fcbf63e00296fd95d33236b9794016631'.toLowerCase(),
   'name': 'Metamask: Approve',
   'type': 'Application',
   'tags': ['Approval']
 };
 
 uniqueAddress['0x0000000000000000000000000000000000000000'.toLowerCase()] = {
+  'address':'0x0000000000000000000000000000000000000000'.toLowerCase(),  
   'name': 'Newly Mined',
   'type': 'Blockchain',
   'tags': ['Mining']
@@ -172,13 +184,19 @@ class App extends Component {
   }
 
   handleAddressInfo = address => {
+    uniqueAddress[address.address.toLowerCase()] = {
+      'address': address.address.toLowerCase(),
+      'name': 'My Wallet',
+      'type': 'Wallet',
+      'tags': ['Wallet']
+    }
     this.setState({ address })
     // console.log(address);
     //etherscan
     etherscan.getTokenTransfers(address.address).then(result => {
       this.handleEtheriumTokenTransfers(result)
       etherscan.getTransactions(address.address).then(result => {
-        this.handleEtheriumAddressTransactions(result)
+        this.handleEtheriumAddressTransactions(result)        
         etherscan
           .getMinedBlocks(address.address)
           .then(result => this.handleEtheriumMinedBlocks(result))
@@ -209,6 +227,124 @@ class App extends Component {
     });
   }
 
+  handleLabelling = (blocks) => {
+    // console.log("handleLabelling called", blocks);
+    var tr_in = 0;
+    var tr_out = 0;
+    var tr_approve = 0;
+
+    Object.keys(blocks).map((blockNumber) => {
+
+
+      switch (blocks[blockNumber]['type']) {
+        case 'Wallet Credit':
+          blocks[blockNumber]['platform'] = { ...uniqueAddress[blocks[blockNumber].transactions[0].from.toLowerCase()] } || { name: "Unknown Platform 1", address: blocks[blockNumber].transactions[0].from.toLowerCase() };
+          break;
+        case 'Wallet Debit':
+          blocks[blockNumber]['platform'] = { ...uniqueAddress[blocks[blockNumber].transactions[0].to.toLowerCase()] } || { name: "Unknown Platform 2", address: blocks[blockNumber].transactions[0].to.toLowerCase() };
+          break;
+
+        default:
+          // console.log(blockNumber, blocks[blockNumber])
+
+          if (blocks[blockNumber].transactions[0].contractAddress.toLowerCase() == "") {
+            blocks[blockNumber]['platform'] = { ...uniqueAddress[blocks[blockNumber].transactions[0].contractAddress.toLowerCase()] };
+          } else {
+            blocks[blockNumber]['platform'] = { name: "My Wallet", address: "" };
+          }
+
+          // console.log(blockNumber, blocks[blockNumber]['platform'])
+          break;
+      }
+
+      tr_in = blocks[blockNumber].in.length;
+      tr_out = blocks[blockNumber].out.length;
+      tr_approve = blocks[blockNumber].approve.length;
+
+      let p_name = blocks[blockNumber]['platform'].name;
+
+      if ((tr_in == 1) && (tr_out == 0) && (tr_approve == 0)) {
+        blocks[blockNumber]['platform'].tname = "Add from " + p_name;
+      } else if ((tr_in == 0) && (tr_out == 1) && (tr_approve == 0)) {
+        blocks[blockNumber]['platform'].tname = "Withdraw from " + p_name;
+      } else if ((tr_in == 1) && (tr_out == 1) && (tr_approve == 0)) {
+        blocks[blockNumber]['platform'].tname = "Swap " + blocks[blockNumber]['out'][0].tokenSymbol + " with " + blocks[blockNumber]['in'][0].tokenSymbol;
+
+      } else if ((tr_in == 1) && (tr_out == 1) && (tr_approve == 1)) {
+        if (blocks[blockNumber]['approve'][0].address == blocks[blockNumber]['in'][0].address) {
+          blocks[blockNumber]['platform'].tname = blocks[blockNumber]['in'][0].tokenSymbol + "/" + "WETH" + " LP - Remove";
+          blocks[blockNumber].blockLabel = blocks[blockNumber]['in'][0].tokenSymbol + "WETH";
+        } else {
+          blocks[blockNumber]['platform'].tname = "Swap " + blocks[blockNumber]['out'][0].tokenSymbol + " with " + blocks[blockNumber]['in'][0].tokenSymbol;
+        }
+
+      } else if ((tr_in == 1) && (tr_out == 2) && (tr_approve >= 1)) {
+
+        blocks[blockNumber]['out'].sort(function (a, b) {
+          if (a.tokenSymbol < b.tokenSymbol) { return -1; }
+          if (a.tokenSymbol > b.tokenSymbol) { return 1; }
+          return 0;
+        })
+        blocks[blockNumber]['platform'].tname = blocks[blockNumber]['out'][0].tokenSymbol + "/" + blocks[blockNumber]['out'][1].tokenSymbol + " LP - Add";
+        blocks[blockNumber].blockLabel = blocks[blockNumber]['out'][0].tokenSymbol + blocks[blockNumber]['out'][1].tokenSymbol;
+
+      } else if ((tr_in == 2) && (tr_out == 1) && (tr_approve >= 1)) {
+
+        // blocks[blockNumber]["out"].sort(function (a, b) {
+        //   return compareObjects(a, b, 'tokenSymbol')
+        // })
+        blocks[blockNumber]['in'].sort(function (a, b) {
+          if (a.tokenSymbol < b.tokenSymbol) { return -1; }
+          if (a.tokenSymbol > b.tokenSymbol) { return 1; }
+          return 0;
+        })
+        blocks[blockNumber]['platform'].tname = blocks[blockNumber]['in'][0].tokenSymbol + "/" + blocks[blockNumber]['in'][1].tokenSymbol + " LP - Remove";
+        blocks[blockNumber].blockLabel = blocks[blockNumber]['in'][0].tokenSymbol + blocks[blockNumber]['in'][1].tokenSymbol;
+
+      } else if ((tr_in == 0) && (tr_out == 1) && (tr_approve >= 1)) {
+        blocks[blockNumber]['platform'].tname = "Stake Transaction";
+      } else if ((tr_in == 2) && (tr_out == 0) && (tr_approve >= 1)) {
+        blocks[blockNumber]['platform'].tname = "Un-Stake Transaction";
+        // console.log(blockNumber, blocks[blockNumber]);
+
+      } else {
+        blocks[blockNumber]['platform'].tname = "Approval Transaction";
+      }
+
+    });
+
+    return blocks;
+  }
+
+  handleLiquidityPools = (blocks) => {
+    console.log("handleLiquidityPools called", blocks);
+    var liquidityPools = { };
+
+    Object.keys(blocks).map((blockNumber) => {
+      if (blocks[blockNumber]['blockLabel'] != undefined) {
+        if (liquidityPools[blocks[blockNumber]['blockLabel']] == undefined) {
+          liquidityPools[blocks[blockNumber]['blockLabel']] = [];
+        }
+        if (blocks[blockNumber]["platform"].tname.indexOf("Add") !== -1) {
+          liquidityPools[blocks[blockNumber]['blockLabel']].push({
+            block: blockNumber,
+            type: "Add",
+            value: blocks[blockNumber].in[0].tokenValue
+          });
+        } else if (blocks[blockNumber]["platform"].tname.indexOf("Remove") !== -1) {
+          liquidityPools[blocks[blockNumber]['blockLabel']].push({
+            block: blockNumber,
+            type: "Remove",
+            value: blocks[blockNumber].in[0].tokenValue
+          });
+        } else {
+
+        }
+      }
+    });
+    return liquidityPools;
+  }
+
   handleEtheriumTokenTransfers = result => {
     if (result.status === '1') {
       var address = this.state.address;
@@ -217,26 +353,19 @@ class App extends Component {
       result.result.map((transaction) => {
         //combine blocks
         if (blocks[transaction["blockNumber"]] == undefined) {
-          blocks[transaction["blockNumber"]] = {"platform":{}, "type": "Defi", "transactions": [], "in": [], "out": [] };
+          blocks[transaction["blockNumber"]] = { "platform": { }, "type": "Defi", "transactions": [], "approve": [], "in": [], "out": [] };
         }
         blocks[transaction["blockNumber"]].transactions.push(transaction);
-        (transaction.to == address.address)
-          ? blocks[transaction["blockNumber"]].in.push({ "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
-          : blocks[transaction["blockNumber"]].out.push({ "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
-
+        // console.log(transaction["blockNumber"], transaction.value, transaction);
+        transaction['type'] = "Token Transfer";
+        transaction['tokenLabel'] = transaction['tokenSymbol'];
+        (transaction.value == "0")
+          ? blocks[transaction["blockNumber"]].approve.push({ "type": "Approve Token Transfer", address: transaction.to, "name": (uniqueAddress[transaction.to] != undefined) ? uniqueAddress[transaction.to].name : "Unknown Approval", "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
+          : (transaction.to == address.address)
+            ? blocks[transaction["blockNumber"]].in.push({ address: transaction.from, "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
+            : blocks[transaction["blockNumber"]].out.push({ address: transaction.to, "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
+        
         blocks[transaction["blockNumber"]]['type'] = (blocks[transaction["blockNumber"]].type == 'Normal') ? (blocks[transaction["blockNumber"]].in.length > 0) ? 'Wallet Credit' : 'Wallet Debit' : 'Defi Dex';
-        switch (blocks[transaction["blockNumber"]]['type']) {
-          case 'Wallet Credit':
-            blocks[transaction["blockNumber"]]['platform'] = uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].from.toLowerCase()] || {};
-            break;
-          case 'Wallet Debit':
-            blocks[transaction["blockNumber"]]['platform'] = uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].to.toLowerCase()] || {};
-            break;
-
-          default:
-            blocks[transaction["blockNumber"]]['platform'] = uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].contractAddress.toLowerCase()] || uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].from.toLowerCase()] || uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].to.toLowerCase()] || {};
-            break;
-        }
         blocks[transaction["blockNumber"]]['gasFee'] = (blocks[transaction["blockNumber"]].transactions[0].gasUsed * blocks[transaction["blockNumber"]].transactions[0].gasPrice / Math.pow(10, 18)).toFixed(4) + ' Eth';
         // store uniqueTokens ;
         if (transaction["contractAddress"] != undefined) {
@@ -266,31 +395,24 @@ class App extends Component {
   handleBinanceTokenTransfers = result => {
     if (result.status === '1') {
       var address = this.state.address;
-      var blocks = {};
+      var blocks = { };
       //find unique tokens
       result.result.map((transaction) => {
         //combine blocks
         if (blocks[transaction["blockNumber"]] == undefined) {
-          blocks[transaction["blockNumber"]] = {"platform":{}, "type": "Defi", "transactions": [], "in": [], "out": [] };
+          blocks[transaction["blockNumber"]] = { "platform": { }, "type": "Defi", "transactions": [], "approve": [], "in": [], "out": [] };
         }
         blocks[transaction["blockNumber"]].transactions.push(transaction);
-        (transaction.to == address.address)
-          ? blocks[transaction["blockNumber"]].in.push({ "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
-          : blocks[transaction["blockNumber"]].out.push({ "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
+        // console.log(transaction["blockNumber"], transaction.value, transaction);
+        transaction['type'] = "Token Transfer";
+        transaction['tokenLabel'] = transaction['tokenSymbol'];
+        (transaction.value == "0")
+          ? blocks[transaction["blockNumber"]].approve.push({ "type": "Approve Token Transfer", address: transaction.to, "name": (uniqueAddress[transaction.to] != undefined) ? uniqueAddress[transaction.to].name : "Unknown Approval", "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
+          : (transaction.to == address.address)
+            ? blocks[transaction["blockNumber"]].in.push({ address: transaction.from, "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
+            : blocks[transaction["blockNumber"]].out.push({ address: transaction.to, "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
 
         blocks[transaction["blockNumber"]]['type'] = (blocks[transaction["blockNumber"]].type == 'Normal') ? (blocks[transaction["blockNumber"]].in.length > 0) ? 'Wallet Credit' : 'Wallet Debit' : 'Defi Dex';
-        switch (blocks[transaction["blockNumber"]]['type']) {
-          case 'Wallet Credit':
-            blocks[transaction["blockNumber"]]['platform'] = uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].from.toLowerCase()] || {};
-            break;
-          case 'Wallet Debit':
-            blocks[transaction["blockNumber"]]['platform'] = uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].to.toLowerCase()] || {};
-            break;
-
-          default:
-            blocks[transaction["blockNumber"]]['platform'] = uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].contractAddress.toLowerCase()] || uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].from.toLowerCase()] || uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].to.toLowerCase()] || {};
-            break;
-        }
         blocks[transaction["blockNumber"]]['gasFee'] = (blocks[transaction["blockNumber"]].transactions[0].gasUsed * blocks[transaction["blockNumber"]].transactions[0].gasPrice / Math.pow(10, 18)).toFixed(4) + ' Eth';
         // store uniqueTokens ;
         if (transaction["contractAddress"] != undefined) {
@@ -320,31 +442,24 @@ class App extends Component {
   handlePolygonTokenTransfers = result => {
     if (result.status === '1') {
       var address = this.state.address;
-      var blocks = {};
+      var blocks = { };
       //find unique tokens
       result.result.map((transaction) => {
         //combine blocks
         if (blocks[transaction["blockNumber"]] == undefined) {
-          blocks[transaction["blockNumber"]] = { "platform": {}, "type": "Defi", "transactions": [], "in": [], "out": [] };
+          blocks[transaction["blockNumber"]] = { "platform": { }, "type": "Defi", "transactions": [], "approve": [], "in": [], "out": [] };
         }
         blocks[transaction["blockNumber"]].transactions.push(transaction);
-        (transaction.to == address.address)
-          ? blocks[transaction["blockNumber"]].in.push({ "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
-          : blocks[transaction["blockNumber"]].out.push({ "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
+        // console.log(transaction["blockNumber"], transaction.value, transaction);
+        transaction['type'] = "Token Transfer";
+        transaction['tokenLabel'] = transaction['tokenSymbol'];
+        (transaction.value == "0")
+          ? blocks[transaction["blockNumber"]].approve.push({ "type": "Approve Token Transfer", address: transaction.to, "name": (uniqueAddress[transaction.to] != undefined) ? uniqueAddress[transaction.to].name : "Unknown Approval", "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
+          : (transaction.to == address.address)
+            ? blocks[transaction["blockNumber"]].in.push({ address: transaction.from, "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
+            : blocks[transaction["blockNumber"]].out.push({ address: transaction.to, "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
 
         blocks[transaction["blockNumber"]]['type'] = (blocks[transaction["blockNumber"]].type == 'Normal') ? (blocks[transaction["blockNumber"]].in.length > 0) ? 'Wallet Credit' : 'Wallet Debit' : 'Defi Dex';
-        switch (blocks[transaction["blockNumber"]]['type']) {
-          case 'Wallet Credit':
-            blocks[transaction["blockNumber"]]['platform'] = uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].from.toLowerCase()] || {};
-            break;
-          case 'Wallet Debit':
-            blocks[transaction["blockNumber"]]['platform'] = uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].to.toLowerCase()] || {};
-            break;
-
-          default:
-            blocks[transaction["blockNumber"]]['platform'] = uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].contractAddress.toLowerCase()] || uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].from.toLowerCase()] || uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].to.toLowerCase()] || {};
-            break;
-        }
         blocks[transaction["blockNumber"]]['gasFee'] = (blocks[transaction["blockNumber"]].transactions[0].gasUsed * blocks[transaction["blockNumber"]].transactions[0].gasPrice / Math.pow(10, 18)).toFixed(4) + ' Eth';
         // store uniqueTokens ;
         if (transaction["contractAddress"] != undefined) {
@@ -374,14 +489,18 @@ class App extends Component {
   handleEtheriumAddressTransactions = result => {
     if (result.status === '1') {
       var address = this.state.address;
-      var blocks = address["etheriumBlocks"];
+      var blocks = {...this.state.address["etheriumBlocks"]};
+      // console.log(uniqueAddress[address.address]);
 
       result.result.map((transaction) => {
         if (blocks[transaction["blockNumber"]] == undefined) {
-          blocks[transaction["blockNumber"]] = {"platform":{}, "type": "Normal", "transactions": [], "in": [], "out": [] };
+          blocks[transaction["blockNumber"]] = { platform: { }, "type": "Normal", "transactions": [], "approve": [], "in": [], "out": [] };
         }
+        // console.log("blocks", blocks[transaction["blockNumber"]]);
+        transaction['type'] = "Wallet Transaction";
+        
         if (transaction.to == "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2" && transaction.value > 0) {
-          blocks[transaction["blockNumber"]].in.push({ "tokenSymbol": "Weth", "tokenName": "Wrapped Ether", "tokenDecimal": "18", "tokenValue": blocks.value })
+          blocks[transaction["blockNumber"]].in.push({ address: address.address,"tokenSymbol": "Weth", "tokenName": "Wrapped Ether", "tokenDecimal": "18", "tokenValue": transaction.value })
           var transactiona = {
             ...transaction,
             to: address.address,
@@ -389,51 +508,35 @@ class App extends Component {
             tokenName: "Wrapped Ether",
             tokenSymbol: "WETH",
             tokenDecimal: "18",
-            tokenValue: blocks.value
+            tokenValue: transaction.value,
+            type: "Token Transfer"
           };
-          blocks[transaction["blockNumber"]].transactions.push(transactiona);
+          blocks[transaction["blockNumber"]].transactions.push(transactiona)
         }
         blocks[transaction["blockNumber"]].transactions.push(transaction);
-        (transaction.to == address.address)
-          ? blocks[transaction["blockNumber"]].in.push({ "tokenSymbol": "Eth", "tokenName": "Ether Coin", "tokenDecimal": "18", "tokenValue": transaction.value })
-          : blocks[transaction["blockNumber"]].out.push({ "tokenSymbol": "Eth", "tokenName": "Ether Coin", "tokenDecimal": "18", "tokenValue": transaction.value })
+
+        (transaction.value == "0")
+          ? blocks[transaction["blockNumber"]].approve.push({ "type": "Approve Transaction", "address": transaction.to, "name": (uniqueAddress[transaction.to] != undefined) ? uniqueAddress[transaction.to].name : "Unknown Approval"  })
+          : (transaction.to == address.address)
+            ? blocks[transaction["blockNumber"]].in.push({ address: address.address, "tokenSymbol": "Eth", "tokenName": "Etherium", "tokenDecimal": "18", "tokenValue": transaction.value })
+            : blocks[transaction["blockNumber"]].out.push({ address: address.address, "tokenSymbol": "Eth", "tokenName": "Etherium", "tokenDecimal": "18", "tokenValue": transaction.value })
 
         blocks[transaction["blockNumber"]]['type'] = (blocks[transaction["blockNumber"]].type == 'Normal') ? (blocks[transaction["blockNumber"]].in.length > 0) ? 'Wallet Credit' : 'Wallet Debit' : 'Defi Dex';
         // console.log("uniqueAddress", uniqueAddress);
         // console.log("transaction", blocks[transaction["blockNumber"]]);
-        switch (blocks[transaction["blockNumber"]]['type']) {
-          case 'Wallet Credit':
-            blocks[transaction["blockNumber"]]['platform'] = uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].from.toLowerCase()] || {};
-            break;
-          case 'Wallet Debit':
-            blocks[transaction["blockNumber"]]['platform'] = uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].to.toLowerCase()] || {};
-            break;
-
-          default:
-            blocks[transaction["blockNumber"]]['platform'] = uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].contractAddress.toLowerCase()] || uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].from.toLowerCase()] || uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].to.toLowerCase()] || {};
-            break;
-        }
         blocks[transaction["blockNumber"]]['gasFee'] = (blocks[transaction["blockNumber"]].transactions[0].gasUsed * blocks[transaction["blockNumber"]].transactions[0].gasPrice / Math.pow(10, 18)).toFixed(4) + ' Eth';
       })
 
       localStorage.setItem('etheriumUniqueAddress', JSON.stringify(uniqueAddress))
       // console.log('etheriumTransactions', transactions);
 
-      // var datewise = {};
-      // Object.keys(etheriumTransactions).map((block) => {
-      //   var date_this = moment((etheriumTransactions[block].transactions[0].timeStamp * 1000)).format('YYYY-MM-DD');
-      //   if (datewise[date_this] == undefined) {
-      //     datewise[moment((etheriumTransactions[block].transactions[0].timeStamp * 1000)).format('YYYY-MM-DD')] = {};
-      //   }
-      //   datewise[moment((etheriumTransactions[block].transactions[0].timeStamp * 1000)).format('YYYY-MM-DD')][block] = etheriumTransactions[block];
-      // });
-      // console.log('dateWise', datewise)
-
+      blocks = this.handleLabelling(blocks)
       this.setState({
         address: {
           ...this.state.address,
           etheriumTransactions: result.result.slice(0, MAX_COUNT),
-          etheriumBlocks: blocks
+          etheriumBlocks: blocks,
+          etheriumliquidityPools: this.handleLiquidityPools(blocks)
         }
       })
     }
@@ -442,67 +545,54 @@ class App extends Component {
   handleBinanceAddressTransactions = result => {
     if (result.status === '1') {
       var address = this.state.address;
-      var blocks = address["binanceBlocks"];
-
-      // console.log("handleBinanceAddressTransactions",result);
-      // console.log("address",address);
+      var blocks = { ...this.state.address["binanceBlocks"] };
+      // console.log(uniqueAddress[address.address]);
 
       result.result.map((transaction) => {
         if (blocks[transaction["blockNumber"]] == undefined) {
-          blocks[transaction["blockNumber"]] = {"platform":{}, "type": "Normal", "transactions": [], "in": [], "out": [] };
+          blocks[transaction["blockNumber"]] = { platform: { }, "type": "Normal", "transactions": [], "approve": [], "in": [], "out": [] };
         }
+        // console.log("blocks", blocks[transaction["blockNumber"]]);
+        transaction['type'] = "Wallet Transaction";
+
         if (transaction.to == "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2" && transaction.value > 0) {
-          blocks[transaction["blockNumber"]].in.push({ "tokenSymbol": "Weth", "tokenName": "Wrapped Ether", "tokenDecimal": "18", "tokenValue": blocks.value })
+          blocks[transaction["blockNumber"]].in.push({ address: address.address, "tokenSymbol": "Weth", "tokenName": "Wrapped Ether", "tokenDecimal": "18", "tokenValue": transaction.value })
           var transactiona = {
-            ...transactions,
+            ...transaction,
             to: address.address,
             from: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
             tokenName: "Wrapped Ether",
             tokenSymbol: "WETH",
             tokenDecimal: "18",
-            tokenValue: blocks.value
+            tokenValue: transaction.value,
+            type: "Token Transfer"
           };
-          blocks[transaction["blockNumber"]].transactions.push(transactiona);
+          blocks[transaction["blockNumber"]].transactions.push(transactiona)
         }
         blocks[transaction["blockNumber"]].transactions.push(transaction);
-        (transaction.to == address.address)
-          ? blocks[transaction["blockNumber"]].in.push({ "tokenSymbol": "Eth", "tokenName": "Ether Coin", "tokenDecimal": "18", "tokenValue": transaction.value })
-          : blocks[transaction["blockNumber"]].out.push({ "tokenSymbol": "Eth", "tokenName": "Ether Coin", "tokenDecimal": "18", "tokenValue": transaction.value })
+
+        (transaction.value == "0")
+          ? blocks[transaction["blockNumber"]].approve.push({ "type": "Approve Transaction", "address": transaction.to, "name": (uniqueAddress[transaction.to] != undefined) ? uniqueAddress[transaction.to].name : "Unknown Approval" })
+          : (transaction.to == address.address)
+            ? blocks[transaction["blockNumber"]].in.push({ address: address.address, "tokenSymbol": "BNB", "tokenName": "Binance Token", "tokenDecimal": "18", "tokenValue": transaction.value })
+            : blocks[transaction["blockNumber"]].out.push({ address: address.address, "tokenSymbol": "BNB", "tokenName": "Binance Token", "tokenDecimal": "18", "tokenValue": transaction.value })
 
         blocks[transaction["blockNumber"]]['type'] = (blocks[transaction["blockNumber"]].type == 'Normal') ? (blocks[transaction["blockNumber"]].in.length > 0) ? 'Wallet Credit' : 'Wallet Debit' : 'Defi Dex';
-        switch (blocks[transaction["blockNumber"]]['type']) {
-          case 'Wallet Credit':
-            blocks[transaction["blockNumber"]]['platform'] = uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].from.toLowerCase()] || {};
-            break;
-          case 'Wallet Debit':
-            blocks[transaction["blockNumber"]]['platform'] = uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].to.toLowerCase()] || {};
-            break;
-
-          default:
-            blocks[transaction["blockNumber"]]['platform'] = uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].contractAddress.toLowerCase()] || uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].from.toLowerCase()] || uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].to.toLowerCase()] || {};
-            break;
-        }
+        // console.log("uniqueAddress", uniqueAddress);
+        // console.log("transaction", blocks[transaction["blockNumber"]]);
         blocks[transaction["blockNumber"]]['gasFee'] = (blocks[transaction["blockNumber"]].transactions[0].gasUsed * blocks[transaction["blockNumber"]].transactions[0].gasPrice / Math.pow(10, 18)).toFixed(4) + ' Eth';
       })
 
-      localStorage.setItem('BinanceUniqueAddress', JSON.stringify(uniqueAddress))
-      // console.log('BinanceTransactions', transactions);
+      localStorage.setItem('binanceUniqueAddress', JSON.stringify(uniqueAddress))
+      // console.log('binanceTransactions', transactions);
 
-      // var datewise = {};
-      // Object.keys(BinanceTransactions).map((block) => {
-      //   var date_this = moment((BinanceTransactions[block].transactions[0].timeStamp * 1000)).format('YYYY-MM-DD');
-      //   if (datewise[date_this] == undefined) {
-      //     datewise[moment((BinanceTransactions[block].transactions[0].timeStamp * 1000)).format('YYYY-MM-DD')] = {};
-      //   }
-      //   datewise[moment((BinanceTransactions[block].transactions[0].timeStamp * 1000)).format('YYYY-MM-DD')][block] = BinanceTransactions[block];
-      // });
-      // console.log('dateWise', datewise)
-
+      blocks = this.handleLabelling(blocks)
       this.setState({
         address: {
           ...this.state.address,
           binanceTransactions: result.result.slice(0, MAX_COUNT),
-          binanceBlocks: blocks
+          binanceBlocks: blocks,
+          binanceliquidityPools: this.handleLiquidityPools(blocks)
         }
       })
     }
@@ -511,67 +601,54 @@ class App extends Component {
   handlePolygonAddressTransactions = result => {
     if (result.status === '1') {
       var address = this.state.address;
-      var blocks = address["binanceBlocks"];
-
-      // console.log("handlePolygonAddressTransactions",result);
-      // console.log("address",address);
+      var blocks = { ...this.state.address["polygonBlocks"] };
+      // console.log(uniqueAddress[address.address]);
 
       result.result.map((transaction) => {
         if (blocks[transaction["blockNumber"]] == undefined) {
-          blocks[transaction["blockNumber"]] = { "platform": {}, "type": "Normal", "transactions": [], "in": [], "out": [] };
+          blocks[transaction["blockNumber"]] = { platform: { }, "type": "Normal", "transactions": [], "approve": [], "in": [], "out": [] };
         }
+        // console.log("blocks", blocks[transaction["blockNumber"]]);
+        transaction['type'] = "Wallet Transaction";
+
         if (transaction.to == "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2" && transaction.value > 0) {
-          blocks[transaction["blockNumber"]].in.push({ "tokenSymbol": "Weth", "tokenName": "Wrapped Ether", "tokenDecimal": "18", "tokenValue": blocks.value })
+          blocks[transaction["blockNumber"]].in.push({ address: address.address, "tokenSymbol": "Weth", "tokenName": "Wrapped Ether", "tokenDecimal": "18", "tokenValue": transaction.value })
           var transactiona = {
-            ...transactions,
+            ...transaction,
             to: address.address,
             from: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
             tokenName: "Wrapped Ether",
             tokenSymbol: "WETH",
             tokenDecimal: "18",
-            tokenValue: blocks.value
+            tokenValue: transaction.value,
+            type: "Token Transfer"
           };
-          blocks[transaction["blockNumber"]].transactions.push(transactiona);
+          blocks[transaction["blockNumber"]].transactions.push(transactiona)
         }
         blocks[transaction["blockNumber"]].transactions.push(transaction);
-        (transaction.to == address.address)
-          ? blocks[transaction["blockNumber"]].in.push({ "tokenSymbol": "Eth", "tokenName": "Ether Coin", "tokenDecimal": "18", "tokenValue": transaction.value })
-          : blocks[transaction["blockNumber"]].out.push({ "tokenSymbol": "Eth", "tokenName": "Ether Coin", "tokenDecimal": "18", "tokenValue": transaction.value })
+
+        (transaction.value == "0")
+          ? blocks[transaction["blockNumber"]].approve.push({ "type": "Approve Transaction", "address": transaction.to, "name": (uniqueAddress[transaction.to] != undefined) ? uniqueAddress[transaction.to].name : "Unknown Approval" })
+          : (transaction.to == address.address)
+            ? blocks[transaction["blockNumber"]].in.push({ address: address.address, "tokenSymbol": "Matic", "tokenName": "Matic", "tokenDecimal": "18", "tokenValue": transaction.value })
+            : blocks[transaction["blockNumber"]].out.push({ address: address.address, "tokenSymbol": "Matic", "tokenName": "Matic", "tokenDecimal": "18", "tokenValue": transaction.value })
 
         blocks[transaction["blockNumber"]]['type'] = (blocks[transaction["blockNumber"]].type == 'Normal') ? (blocks[transaction["blockNumber"]].in.length > 0) ? 'Wallet Credit' : 'Wallet Debit' : 'Defi Dex';
-        switch (blocks[transaction["blockNumber"]]['type']) {
-          case 'Wallet Credit':
-            blocks[transaction["blockNumber"]]['platform'] = uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].from.toLowerCase()] || {};
-            break;
-          case 'Wallet Debit':
-            blocks[transaction["blockNumber"]]['platform'] = uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].to.toLowerCase()] || {};
-            break;
-
-          default:
-            blocks[transaction["blockNumber"]]['platform'] = uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].contractAddress.toLowerCase()] || uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].from.toLowerCase()] || uniqueAddress[blocks[transaction["blockNumber"]].transactions[0].to.toLowerCase()] || {};
-            break;
-        }
+        // console.log("uniqueAddress", uniqueAddress);
+        // console.log("transaction", blocks[transaction["blockNumber"]]);
         blocks[transaction["blockNumber"]]['gasFee'] = (blocks[transaction["blockNumber"]].transactions[0].gasUsed * blocks[transaction["blockNumber"]].transactions[0].gasPrice / Math.pow(10, 18)).toFixed(4) + ' Eth';
       })
 
-      localStorage.setItem('BinanceUniqueAddress', JSON.stringify(uniqueAddress))
-      // console.log('BinanceTransactions', transactions);
+      localStorage.setItem('polygonUniqueAddress', JSON.stringify(uniqueAddress))
+      // console.log('polygonTransactions', transactions);
 
-      // var datewise = {};
-      // Object.keys(BinanceTransactions).map((block) => {
-      //   var date_this = moment((BinanceTransactions[block].transactions[0].timeStamp * 1000)).format('YYYY-MM-DD');
-      //   if (datewise[date_this] == undefined) {
-      //     datewise[moment((BinanceTransactions[block].transactions[0].timeStamp * 1000)).format('YYYY-MM-DD')] = {};
-      //   }
-      //   datewise[moment((BinanceTransactions[block].transactions[0].timeStamp * 1000)).format('YYYY-MM-DD')][block] = BinanceTransactions[block];
-      // });
-      // console.log('dateWise', datewise)
-
+      blocks = this.handleLabelling(blocks)
       this.setState({
         address: {
           ...this.state.address,
           polygonTransactions: result.result.slice(0, MAX_COUNT),
-          polygonBlocks: blocks
+          polygonBlocks: blocks,
+          polygonliquidityPools: this.handleLiquidityPools(blocks)
         }
       })
     }

@@ -13,8 +13,8 @@ var cumuValue = {
 }
 
 const EtheriumBlocksPane = ({ address }) => {
-  // console.log('EtheriumBlocksPane-Transactions',address.etheriumBlocks);
-  // console.log('EtheriumBlocksPane-length', Object.keys(address.etheriumBlocks).length);
+  console.log('EtheriumliquidityPools', address.etheriumliquidityPools);
+  console.log('EtheriumBlocksPane', address.etheriumBlocks);
   var i=1;
   if (!address.etheriumBlocks) return null
   return (
@@ -26,18 +26,26 @@ const EtheriumBlocksPane = ({ address }) => {
               <Card.Header>
                 <Grid columns='four' divided>
                   <Grid.Row>
-                    <Grid.Column>
-                      <Grid.Row> {`Date  ${Moment((address.etheriumBlocks[blockKey].transactions[0].timeStamp * 1000)).format('YYYY-MM-DD')}`} </Grid.Row>
-                      <Grid.Row> <a href={"https://etherscan.io/tx/" + address.etheriumBlocks[blockKey].transactions[0].hash} target="_blank"> {`Block - ${blockKey}`} </a> </Grid.Row>
-                    </Grid.Column>
-                    <Grid.Column>
+                    <Grid.Column style={{ wordWrap: "break-word", fontWeight: "300", fontSize: "12px"}}>
+                      <Grid.Row style={{ fontWeight: "1000", fontSize: "16px", marginBottom: "5px"}}> <a href={"https://etherscan.io/tx/" + address.etheriumBlocks[blockKey].transactions[0].hash} target="_blank"> {`Block - ${blockKey}`} </a> </Grid.Row>
+                      <Grid.Row> {`${Moment((address.etheriumBlocks[blockKey].transactions[0].timeStamp * 1000)).format('YYYY-MM-DD')}`} </Grid.Row>
                       <Grid.Row> {`${Moment((address.etheriumBlocks[blockKey].transactions[0].timeStamp * 1000)).format('hh:mm:ss a')}`} </Grid.Row>
                       <Grid.Row> {`${Moment((address.etheriumBlocks[blockKey].transactions[0].timeStamp * 1000)).fromNow()}`} </Grid.Row>
                     </Grid.Column>
-                    <Grid.Column>
-                      <Grid.Row> {`${(address.etheriumBlocks[blockKey].platform != undefined) ? address.etheriumBlocks[blockKey].platform.name:""}`} </Grid.Row>
+                    <Grid.Column style={{ wordWrap: "break-word", fontWeight: "300", fontSize: "10px"}}>
+                      <Grid.Row style={{ fontWeight: "1000", fontSize: "16px", marginBottom: "5px" }}> {address.etheriumBlocks[blockKey].platform.tname || "Not Found"} </Grid.Row>
+                      <Grid.Row> {address.etheriumBlocks[blockKey].platform.name || "My Wallet"} </Grid.Row>
+                      <Grid.Row> {address.etheriumBlocks[blockKey].platform.address || address.address} </Grid.Row>
+                      <Grid.Row> {`${Object.keys(address.etheriumBlocks[blockKey].in).length} In, ${Object.keys(address.etheriumBlocks[blockKey].out).length} Out, ${Object.keys(address.etheriumBlocks[blockKey].approve).length} Approve`} </Grid.Row>
+                    </Grid.Column>
+                    <Grid.Column style={{ wordWrap: "break-word", fontWeight: "300", fontSize: "14px" }}>
+                      <Grid.Row style={{ fontWeight: "1000", fontSize: "16px", marginBottom: "5px" }}> 
+                        {(address.etheriumBlocks[blockKey].blockLabel != undefined)
+                          ? <button> {`Track ${(address.etheriumBlocks[blockKey].blockLabel)}`} </button>
+                        :""}
+                      </Grid.Row>
                       {(address.etheriumBlocks[blockKey].in.length > 0 && address.etheriumBlocks[blockKey].out.length > 0)
-                        ? <Grid.Row>
+                        ? <Grid.Row style={{ fontWeight: "600", fontSize: "16px" }}>
                           <Grid columns='two' divided>
                             <Grid.Row>
                               <Grid.Column>
@@ -50,19 +58,19 @@ const EtheriumBlocksPane = ({ address }) => {
                               <Grid.Column>
                                 {address.etheriumBlocks[blockKey].in.map((trr, keyr) => (
                                   <Grid.Row>
-                                    {(trr.tokenValue > 0) ? (trr.tokenValue / Math.pow(10, trr.tokenDecimal || 18)).toFixed(2) + ' '+ (trr.tokenSymbol || 'Ether ') : ''}
+                                    {(trr.tokenValue > 0) ? (trr.tokenValue / Math.pow(10, trr.tokenDecimal || 18)).toFixed(2) + ' ' + (trr.tokenSymbol || 'Ether ') : ''}
                                   </Grid.Row>
                                 ))}
                               </Grid.Column>
                             </Grid.Row>
                           </Grid>
                         </Grid.Row>
-                      : ''}
+                        : ''}
                     </Grid.Column>
                     <Grid.Column>
                       <Grid.Row> 
                         <Image src='../assets/gasfee.svg' /> &nbsp;
-                        {`${cumuGasFee(parseFloat(address.etheriumBlocks[blockKey].gasFee))}`}
+                        {`${cumuGasFee(parseFloat(address.etheriumBlocks[blockKey].gasFee))} Eth`}
                       </Grid.Row>
                     </Grid.Column>
                   </Grid.Row>
@@ -99,11 +107,11 @@ const EtheriumBlocksPane = ({ address }) => {
                       <Grid.Row>
                         {(tr.value == 0) ? " " :'Balance: ' }
                         {(tr.value == 0) ? " " : cumuTokenValue(tr.tokenSymbol || 'Eth', (tr.value / Math.pow(10, 18)), (tr.to === address.address))}
-                        {(tr.value == 0) ? " " : (tr.tokenSymbol || 'Eth')}
+                        {(tr.value == 0) ? " " : (tr.tokenSymbol || ' Eth')}
                       </Grid.Row>
                     </Grid.Column>
                     <Grid.Column>
-                      {cumuGas.toFixed(4)+' Eth'}
+                      {tr.type}
                     </Grid.Column>
                   </Grid.Row>
                 </Grid>

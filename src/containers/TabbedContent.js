@@ -5,16 +5,19 @@ import TokenBalanceInfo from '../components/TokenBalanceInfo.js'
 import EtheriumTransactionsPane from '../components/EtheriumTransactionsPane'
 import EtheriumTokenTransfersPane from '../components/EtheriumTokenTransfersPane'
 import EtheriumBlocksPane from '../components/EtheriumBlocksPane'
+import EtheriumLiquidityPoolsPane from '../components/EtheriumLiquidityPoolsPane'
 import EtheriumMinedBlocksPane from '../components/EtheriumMinedBlocksPane'
 
 import BinanceTransactionsPane from '../components/BinanceTransactionsPane'
 import BinanceTokenTransfersPane from '../components/BinanceTokenTransfersPane'
 import BinanceBlocksPane from '../components/BinanceBlocksPane'
+import BinanceLiquidityPoolsPane from '../components/BinanceLiquidityPoolsPane'
 import BinanceMinedBlocksPane from '../components/BinanceMinedBlocksPane'
 
 import PolygonTransactionsPane from '../components/PolygonTransactionsPane'
 import PolygonTokenTransfersPane from '../components/PolygonTokenTransfersPane'
 import PolygonBlocksPane from '../components/PolygonBlocksPane'
+import PolygonLiquidityPoolsPane from '../components/PolygonLiquidityPoolsPane'
 import PolygonMinedBlocksPane from '../components/PolygonMinedBlocksPane'
 
 const TabbedContent = ({ address }) => {
@@ -48,6 +51,14 @@ const TabbedContent = ({ address }) => {
           <Tab.Pane as='div'>
             <EtheriumTokenTransfersPane address={address} />
           </Tab.Pane>
+        )
+      }
+      : null,
+    address.etheriumBlocks
+      ? {
+        menuItem: 'Etherium Liquidity Pools',
+        render: () => (
+          <Tab.Pane as='div'> <EtheriumLiquidityPoolsPane address={address} /> </Tab.Pane>
         )
       }
       : null,
@@ -91,9 +102,15 @@ const TabbedContent = ({ address }) => {
       ? {
         menuItem: 'Binance Blockwise Traverse',
         render: () => (
-          <Tab.Pane as='div'>
-            <BinanceBlocksPane address={address} />
-          </Tab.Pane>
+          <Tab.Pane as='div'> <BinanceBlocksPane address={address} /> </Tab.Pane>
+        )
+      }
+      : null,
+    address.binanceBlocks
+      ? {
+        menuItem: 'Binance Liquidity Pools',
+        render: () => (
+          <Tab.Pane as='div'> <BinanceLiquidityPoolsPane address={address} /> </Tab.Pane>
         )
       }
       : null,
@@ -127,9 +144,15 @@ const TabbedContent = ({ address }) => {
       ? {
         menuItem: 'Polygon Blockwise Traverse',
         render: () => (
-          <Tab.Pane as='div'>
-            <PolygonBlocksPane address={address} />
-          </Tab.Pane>
+          <Tab.Pane as='div'> <PolygonBlocksPane address={address} /> </Tab.Pane>
+        )
+      }
+      : null,
+    address.polygonBlocks
+      ? {
+        menuItem: 'Polygon Liquidity Pools',
+        render: () => (
+          <Tab.Pane as='div'> <PolygonLiquidityPoolsPane address={address} /> </Tab.Pane>
         )
       }
       : null,
@@ -143,7 +166,7 @@ const TabbedContent = ({ address }) => {
       : null
   ]
   return <Tab menu={{ borderless: true }, {style: {
-    "overflow-x": "scroll"
+    "overflowX": "scroll"
   }}} panes={panes} />
 }
 
