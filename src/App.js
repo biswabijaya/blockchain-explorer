@@ -413,7 +413,7 @@ class App extends Component {
             : blocks[transaction["blockNumber"]].out.push({ address: transaction.to, "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
 
         blocks[transaction["blockNumber"]]['type'] = (blocks[transaction["blockNumber"]].type == 'Normal') ? (blocks[transaction["blockNumber"]].in.length > 0) ? 'Wallet Credit' : 'Wallet Debit' : 'Defi Dex';
-        blocks[transaction["blockNumber"]]['gasFee'] = (blocks[transaction["blockNumber"]].transactions[0].gasUsed * blocks[transaction["blockNumber"]].transactions[0].gasPrice / Math.pow(10, 18)).toFixed(4) + ' Eth';
+        blocks[transaction["blockNumber"]]['gasFee'] = (blocks[transaction["blockNumber"]].transactions[0].gasUsed * blocks[transaction["blockNumber"]].transactions[0].gasPrice / Math.pow(10, 18)).toFixed(4) + ' BNB';
         // store uniqueTokens ;
         if (transaction["contractAddress"] != undefined) {
           uniqueTokens[transaction["contractAddress"]] = {
@@ -580,7 +580,7 @@ class App extends Component {
         blocks[transaction["blockNumber"]]['type'] = (blocks[transaction["blockNumber"]].type == 'Normal') ? (blocks[transaction["blockNumber"]].in.length > 0) ? 'Wallet Credit' : 'Wallet Debit' : 'Defi Dex';
         // console.log("uniqueAddress", uniqueAddress);
         // console.log("transaction", blocks[transaction["blockNumber"]]);
-        blocks[transaction["blockNumber"]]['gasFee'] = (blocks[transaction["blockNumber"]].transactions[0].gasUsed * blocks[transaction["blockNumber"]].transactions[0].gasPrice / Math.pow(10, 18)).toFixed(4) + ' Eth';
+        blocks[transaction["blockNumber"]]['gasFee'] = (blocks[transaction["blockNumber"]].transactions[0].gasUsed * blocks[transaction["blockNumber"]].transactions[0].gasPrice / Math.pow(10, 18)).toFixed(4) + ' BNB';
       })
 
       localStorage.setItem('binanceUniqueAddress', JSON.stringify(uniqueAddress))

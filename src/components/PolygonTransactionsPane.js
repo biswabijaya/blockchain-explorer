@@ -54,7 +54,7 @@ const PolygonTransactionsPane = ({ address }) => {
               />
             </Table.Cell>
             <Table.Cell textAlign='center'>
-              {`${parseFloat(api.fromWei(tr.value, 'ether')).toFixed(2)} Ether`}
+              {`${parseFloat(api.fromWei(tr.value, 'ether')).toFixed(2)} MATIC`}
             </Table.Cell>
           </Table.Row>
         ))}

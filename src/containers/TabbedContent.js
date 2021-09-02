@@ -21,7 +21,7 @@ import PolygonLiquidityPoolsPane from '../components/PolygonLiquidityPoolsPane'
 import PolygonMinedBlocksPane from '../components/PolygonMinedBlocksPane'
 
 const TabbedContent = ({ address }) => {
-  // console.log(address);
+  console.log("After Processing",address);
   if (!address) return null
   const panes = [
     address.tokens
