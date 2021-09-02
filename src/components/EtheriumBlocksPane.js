@@ -16,6 +16,30 @@ const EtheriumBlocksPane = ({ address }) => {
   console.log('EtheriumliquidityPools', address.etheriumliquidityPools);
   console.log('EtheriumBlocksPane', address.etheriumBlocks);
   var i=1;
+
+  cumuGas = 0;
+  cumuValue = {
+    "Eth": 0
+  }
+
+
+  function cumuGasFee(gasFee, returnable = true) {
+    // console.log(gasFee);
+    cumuGas += gasFee;
+    if (returnable)
+      return cumuGas.toFixed(4);
+    else
+      return ' ';
+  }
+
+  function cumuTokenValue(tokenSymbol, tokenValue, credit = false) {
+    if (cumuValue[tokenSymbol] == undefined) {
+      cumuValue[tokenSymbol] = 0;
+    }
+
+    cumuValue[tokenSymbol] = credit ? cumuValue[tokenSymbol] + tokenValue : cumuValue[tokenSymbol] - tokenValue;
+    return cumuValue[tokenSymbol].toFixed(4);
+  }
   if (!address.etheriumBlocks) return null
   return (
     <>
@@ -161,22 +185,6 @@ const EtheriumBlocksPane = ({ address }) => {
   )
 }
 
-function cumuGasFee(gasFee,returnable=true){
-  // console.log(gasFee);
-  cumuGas += gasFee;
-  if (returnable)
-    return cumuGas.toFixed(4);
-  else 
-    return ' ';
-}
 
-function cumuTokenValue(tokenSymbol, tokenValue, credit=false) {
-  if (cumuValue[tokenSymbol] == undefined){
-    cumuValue[tokenSymbol] = 0;
-  }
-  
-  cumuValue[tokenSymbol] = credit ? cumuValue[tokenSymbol] + tokenValue : cumuValue[tokenSymbol] - tokenValue;
-  return cumuValue[tokenSymbol].toFixed(4);
-}
 
 export default EtheriumBlocksPane
