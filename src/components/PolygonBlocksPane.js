@@ -27,7 +27,7 @@ const PolygonBlocksPane = ({ address }) => {
                 <Grid columns='four' divided>
                   <Grid.Row>
                     <Grid.Column style={{ wordWrap: "break-word", fontWeight: "300", fontSize: "12px" }}>
-                      <Grid.Row style={{ fontWeight: "1000", fontSize: "16px", marginBottom: "5px" }}> <a href={"https://etherscan.io/tx/" + address.polygonBlocks[blockKey].transactions[0].hash} target="_blank"> {`Block - ${blockKey}`} </a> </Grid.Row>
+                      <Grid.Row style={{ fontWeight: "1000", fontSize: "16px", marginBottom: "5px" }}> <a href={"https://polygoncan.com/tx/" + address.polygonBlocks[blockKey].transactions[0].hash} target="_blank"> {`Block - ${blockKey}`} </a> </Grid.Row>
                       <Grid.Row> {`${Moment((address.polygonBlocks[blockKey].transactions[0].timeStamp * 1000)).format('YYYY-MM-DD')}`} </Grid.Row>
                       <Grid.Row> {`${Moment((address.polygonBlocks[blockKey].transactions[0].timeStamp * 1000)).format('hh:mm:ss a')}`} </Grid.Row>
                       <Grid.Row> {`${Moment((address.polygonBlocks[blockKey].transactions[0].timeStamp * 1000)).fromNow()}`} </Grid.Row>

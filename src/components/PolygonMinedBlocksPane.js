@@ -30,7 +30,7 @@ const PolygonMinedBlocksPane = ({ address }) => {
               {moment(block.timeStamp * 1000).fromNow()}
             </Table.Cell>
             <Table.Cell>
-              {`${api.fromWei(block.blockReward, 'ether')} Ether`}
+              {`${api.fromWei(block.blockReward, 'MATIC')} MATIC`}
             </Table.Cell>
           </Table.Row>
         ))}

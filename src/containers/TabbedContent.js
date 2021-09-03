@@ -56,19 +56,19 @@ const TabbedContent = ({ address }) => {
       : null,
     address.etheriumBlocks
       ? {
-        menuItem: 'Etherium Liquidity Pools',
-        render: () => (
-          <Tab.Pane as='div'> <EtheriumLiquidityPoolsPane address={address} /> </Tab.Pane>
-        )
-      }
-      : null,
-    address.etheriumBlocks
-      ? {
         menuItem: 'Etherium Blockwise Traverse',
         render: () => (
           <Tab.Pane as='div'>
             <EtheriumBlocksPane address={address} />
           </Tab.Pane>
+        )
+      }
+      : null,
+    address.etheriumBlocks
+      ? {
+        menuItem: 'Etherium Liquidity Pools',
+        render: () => (
+          <Tab.Pane as='div'> <EtheriumLiquidityPoolsPane address={address} /> </Tab.Pane>
         )
       }
       : null,
