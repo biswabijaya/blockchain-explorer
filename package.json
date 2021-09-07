@@ -1,6 +1,6 @@
 {
   "name": "blockchain-explorer",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "UI to explore tokens & transcations across all blockchain scanners like etherscan, bscscan, polygonscan etc with a simple interface",
   "private": false,
   "repository": {

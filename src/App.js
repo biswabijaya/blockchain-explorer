@@ -238,7 +238,7 @@ class App extends Component {
     });
   }
 
-  handleLabelling = (blocks) => {
+  handleLabelling = (blocks,chain) => {
     // console.log("handleLabelling called", blocks);
     var tr_in = 0;
     var tr_out = 0;
@@ -284,16 +284,16 @@ class App extends Component {
       } else if ((tr_in == 1) && (tr_out == 1) && (tr_approve == 1)) {
         if (blocks[blockNumber]['approve'][0].address == blocks[blockNumber]['in'][0].address) {
           //if pool token is defined
-          if (liquidityPools.etherium[blocks[blockNumber]['transactions'][0].contractAddress] != undefined) {
-            blocks[blockNumber]['platform'].tname = liquidityPools.etherium[blocks[blockNumber]['transactions'][0].contractAddress]["pool"] + " LP - Remove";
-            blocks[blockNumber].blockLabel = liquidityPools.etherium[blocks[blockNumber]['transactions'][0].contractAddress]["pool"];
-          } else if (liquidityPools.etherium[blocks[blockNumber]['transactions'][1].contractAddress] != undefined) {
+          if (liquidityPools[chain][blocks[blockNumber]['transactions'][0].contractAddress] != undefined) {
+            blocks[blockNumber]['platform'].tname = liquidityPools[chain][blocks[blockNumber]['transactions'][0].contractAddress]["pool"] + " LP - Remove";
+            blocks[blockNumber].blockLabel = liquidityPools[chain][blocks[blockNumber]['transactions'][0].contractAddress]["pool"];
+          } else if (liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress] != undefined) {
             //get reward in first transaction
-            liquidityPools.etherium[blocks[blockNumber]['transactions'][1].contractAddress]["reward"] = liquidityPools.etherium[blocks[blockNumber]['transactions'][1].contractAddress]["reward"] || 0;
-            liquidityPools.etherium[blocks[blockNumber]['transactions'][1].contractAddress]["reward"] = parseInt(blocks[blockNumber]['transactions'][0].value);
+            liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress]["reward"] = liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress]["reward"] || 0;
+            liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress]["reward"] = parseInt(blocks[blockNumber]['transactions'][0].value);
 
-            blocks[blockNumber]['platform'].tname = liquidityPools.etherium[blocks[blockNumber]['transactions'][1].contractAddress]["pool"] + " LP - Stake Again";
-            blocks[blockNumber].blockLabel = liquidityPools.etherium[blocks[blockNumber]['transactions'][1].contractAddress]["pool"];
+            blocks[blockNumber]['platform'].tname = liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress]["pool"] + " LP - Stake Again";
+            blocks[blockNumber].blockLabel = liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress]["pool"];
           }
         } else {
           blocks[blockNumber]['platform'].tname = "Swap " + blocks[blockNumber]['out'][0].tokenSymbol + " with " + blocks[blockNumber]['in'][0].tokenSymbol;
@@ -314,7 +314,7 @@ class App extends Component {
           blocks[blockNumber].blockLabel = blocks[blockNumber]['out'][0].tokenSymbol + blocks[blockNumber]['out'][1].tokenSymbol;
           blocks[blockNumber].blockLabelToken = uniqueTokens[blocks[blockNumber]['out'][0].address]
           uniqueTokens[blocks[blockNumber]['out'][0].address]["pool"] = blocks[blockNumber].blockLabel;
-          liquidityPools.etherium[blocks[blockNumber]['out'][0].address] = uniqueTokens[blocks[blockNumber]['out'][0].address];
+          liquidityPools[chain][blocks[blockNumber]['out'][0].address] = uniqueTokens[blocks[blockNumber]['out'][0].address];
         }
       } else if ((tr_in == 2) && (tr_out == 1) && (tr_approve >= 1)) {
 
@@ -326,26 +326,26 @@ class App extends Component {
         })
         
         //if pool token is defined
-        if (liquidityPools.etherium[blocks[blockNumber]['transactions'][0].contractAddress] != undefined) {
-          blocks[blockNumber]['platform'].tname = liquidityPools.etherium[blocks[blockNumber]['transactions'][0].contractAddress]["pool"] + " LP - Remove";
-          blocks[blockNumber].blockLabel = liquidityPools.etherium[blocks[blockNumber]['transactions'][0].contractAddress]["pool"];
+        if (liquidityPools[chain][blocks[blockNumber]['transactions'][0].contractAddress] != undefined) {
+          blocks[blockNumber]['platform'].tname = liquidityPools[chain][blocks[blockNumber]['transactions'][0].contractAddress]["pool"] + " LP - Remove";
+          blocks[blockNumber].blockLabel = liquidityPools[chain][blocks[blockNumber]['transactions'][0].contractAddress]["pool"];
         }
         
       } else if ((tr_in == 0) && (tr_out == 1) && (tr_approve >= 1)) {
         blocks[blockNumber]['platform'].tname = "Stake Transaction";
-        if (liquidityPools.etherium[blocks[blockNumber]['transactions'][0].contractAddress] != undefined) {
-          blocks[blockNumber]['platform'].tname = liquidityPools.etherium[blocks[blockNumber]['transactions'][0].contractAddress]["pool"] +" LP - Stake";
-          blocks[blockNumber].blockLabel = liquidityPools.etherium[blocks[blockNumber]['transactions'][0].contractAddress]["pool"];
+        if (liquidityPools[chain][blocks[blockNumber]['transactions'][0].contractAddress] != undefined) {
+          blocks[blockNumber]['platform'].tname = liquidityPools[chain][blocks[blockNumber]['transactions'][0].contractAddress]["pool"] +" LP - Stake";
+          blocks[blockNumber].blockLabel = liquidityPools[chain][blocks[blockNumber]['transactions'][0].contractAddress]["pool"];
         }
       } else if ((tr_in == 2) && (tr_out == 0) && (tr_approve >= 1)) {
         blocks[blockNumber]['platform'].tname = "Un-Stake Transaction";
-        if (liquidityPools.etherium[blocks[blockNumber]['transactions'][1].contractAddress] != undefined) {
+        if (liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress] != undefined) {
           //get reward in first transaction
-          liquidityPools.etherium[blocks[blockNumber]['transactions'][1].contractAddress]["reward"] = liquidityPools.etherium[blocks[blockNumber]['transactions'][1].contractAddress]["reward"] || 0;
-          liquidityPools.etherium[blocks[blockNumber]['transactions'][1].contractAddress]["reward"] += parseInt(blocks[blockNumber]['transactions'][0].value);
+          liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress]["reward"] = liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress]["reward"] || 0;
+          liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress]["reward"] += parseInt(blocks[blockNumber]['transactions'][0].value);
 
-          blocks[blockNumber]['platform'].tname = liquidityPools.etherium[blocks[blockNumber]['transactions'][1].contractAddress]["pool"] + " LP - Unstake";
-          blocks[blockNumber].blockLabel = liquidityPools.etherium[blocks[blockNumber]['transactions'][1].contractAddress]["pool"];
+          blocks[blockNumber]['platform'].tname = liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress]["pool"] + " LP - Unstake";
+          blocks[blockNumber].blockLabel = liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress]["pool"];
         }
         // console.log(blockNumber, blocks[blockNumber]);
 
@@ -362,41 +362,46 @@ class App extends Component {
 
   handleLiquidityPools = (blocks) => {
     console.log("handleLiquidityPools called", blocks);
-    var liquidityPools = { };
+    var liquidity_pool = { };
 
     Object.keys(blocks).map((blockNumber) => {
       if (blocks[blockNumber]['blockLabel'] != undefined) {
-        if (liquidityPools[blocks[blockNumber]['blockLabel']] == undefined) {
-          liquidityPools[blocks[blockNumber]['blockLabel']] = [];
+        if (liquidity_pool[blocks[blockNumber]['blockLabel']] == undefined) {
+          liquidity_pool[blocks[blockNumber]['blockLabel']] = [];
         }
         if (blocks[blockNumber]["platform"].tname.indexOf("Add") !== -1) {
-          liquidityPools[blocks[blockNumber]['blockLabel']].push({
+          liquidity_pool[blocks[blockNumber]['blockLabel']].push({
             block: blockNumber,
+            date: moment(blocks[blockNumber].transactions[0].timestamp).format("YYYY-MM-DD"),
             type: "Add",
             value: blocks[blockNumber].in[0].tokenValue,
           });
         } else if (blocks[blockNumber]["platform"].tname.indexOf("Remove") !== -1) {
-          liquidityPools[blocks[blockNumber]['blockLabel']].push({
+          liquidity_pool[blocks[blockNumber]['blockLabel']].push({
             block: blockNumber,
+            date: moment(blocks[blockNumber].transactions[0].timestamp).format("YYYY-MM-DD"),
             type: "Remove",
             value: blocks[blockNumber].out[0].tokenValue,
           });
         } else if (blocks[blockNumber]["platform"].tname.indexOf("Stake Again") !== -1) {
-          liquidityPools[blocks[blockNumber]['blockLabel']].push({
+          liquidity_pool[blocks[blockNumber]['blockLabel']].push({
             block: blockNumber,
+            date: moment(blocks[blockNumber].transactions[0].timestamp).format("YYYY-MM-DD"),
             type: "Stake Again",
             value: blocks[blockNumber].out[0].tokenValue,
             reward: { tokenAddress:blocks[blockNumber].transactions[0].contractAddress, value:blocks[blockNumber].transactions[0].value}
           });
         } else if (blocks[blockNumber]["platform"].tname.indexOf("Stake") !== -1) {
-          liquidityPools[blocks[blockNumber]['blockLabel']].push({
+          liquidity_pool[blocks[blockNumber]['blockLabel']].push({
             block: blockNumber,
+            date: moment(blocks[blockNumber].transactions[0].timestamp).format("YYYY-MM-DD"),
             type: "Stake",
             value: blocks[blockNumber].out[0].tokenValue
           });
         } else if (blocks[blockNumber]["platform"].tname.indexOf("Unstake") !== -1) {
-          liquidityPools[blocks[blockNumber]['blockLabel']].push({
+          liquidity_pool[blocks[blockNumber]['blockLabel']].push({
             block: blockNumber,
+            date: moment(blocks[blockNumber].transactions[0].timestamp).format("YYYY-MM-DD"),
             type: "Unstake",
             value: blocks[blockNumber].in[0].tokenValue,
             reward: { tokenAddress:blocks[blockNumber].transactions[0].contractAddress, value: blocks[blockNumber].transactions[0].value }
@@ -406,7 +411,7 @@ class App extends Component {
         }
       }
     });
-    return liquidityPools;
+    return liquidity_pool;
   }
 
   handleEtheriumTokenTransfers = result => {
@@ -597,7 +602,7 @@ class App extends Component {
       localStorage.setItem('etheriumUniqueAddress', JSON.stringify(uniqueAddress))
       // console.log('etheriumTransactions', transactions);
 
-      blocks = this.handleLabelling(blocks)
+      blocks = this.handleLabelling(blocks,"etherium")
       this.setState({
         address: {
           ...this.state.address,
@@ -653,7 +658,7 @@ class App extends Component {
       localStorage.setItem('binanceUniqueAddress', JSON.stringify(uniqueAddress))
       // console.log('binanceTransactions', transactions);
 
-      blocks = this.handleLabelling(blocks)
+      blocks = this.handleLabelling(blocks, "binance")
       this.setState({
         address: {
           ...this.state.address,
@@ -709,7 +714,7 @@ class App extends Component {
       localStorage.setItem('polygonUniqueAddress', JSON.stringify(uniqueAddress))
       // console.log('polygonTransactions', transactions);
 
-      blocks = this.handleLabelling(blocks)
+      blocks = this.handleLabelling(blocks,"polygon")
       this.setState({
         address: {
           ...this.state.address,
