@@ -27,10 +27,42 @@ var liquidityPools ={
   binance: { },
   polygon: { }
 };
+var gasFees = {
+  etherium: 0,
+  binance: 0,
+  polygon: 0
+};
+var investments = {
+  etherium: [],
+  binance: [],
+  polygon: []
+};
+var myAddress = '';
 
 uniqueAddress['0x618ffd1cdabee36ce5992a857cc7463f21272bd7'.toLowerCase()] = {
   'address':'0x618ffd1cdabee36ce5992a857cc7463f21272bd7'.toLowerCase(),
   'name': 'WazirX',
+  'type': 'Exchange',
+  'tags': ['Exchange']
+};
+
+uniqueAddress['0x8894e0a0c962cb723c1976a4421c95949be2d4e3'.toLowerCase()] = {
+  'address': '0x8894e0a0c962cb723c1976a4421c95949be2d4e3'.toLowerCase(),
+  'name': 'Binance',
+  'type': 'Exchange',
+  'tags': ['Exchange']
+};
+
+uniqueAddress['0xe2fc31f816a9b94326492132018c3aecc4a93ae1'.toLowerCase()] = {
+  'address': '0xe2fc31f816a9b94326492132018c3aecc4a93ae1'.toLowerCase(),
+  'name': 'Binance',
+  'type': 'Exchange',
+  'tags': ['Exchange']
+};
+
+uniqueAddress['0xdccf3b77da55107280bd850ea519df3705d1a75a'.toLowerCase()] = {
+  'address': '0xdccf3b77da55107280bd850ea519df3705d1a75a'.toLowerCase(),
+  'name': 'Binance',
   'type': 'Exchange',
   'tags': ['Exchange']
 };
@@ -93,7 +125,7 @@ uniqueAddress['0x74de5d4fcbf63e00296fd95d33236b9794016631'.toLowerCase()] = {
 };
 
 uniqueAddress['0x0000000000000000000000000000000000000000'.toLowerCase()] = {
-  'address':'0x0000000000000000000000000000000000000000'.toLowerCase(),  
+  'address': '0x0000000000000000000000000000000000000000'.toLowerCase(),
   'name': 'Newly Mined',
   'type': 'Blockchain',
   'tags': ['Mining']
@@ -198,6 +230,8 @@ class App extends Component {
     this.setState({ address })
     // console.log(address);
 
+    myAddress = address.address;
+
     //index tokens
     address.tokensIndexed = { };
     address.tokens.map((token) => {
@@ -244,27 +278,31 @@ class App extends Component {
     var tr_out = 0;
     var tr_approve = 0;
 
+    
+
     Object.keys(blocks).map((blockNumber) => {
-
-
       switch (blocks[blockNumber]['type']) {
         case 'Wallet Credit':
           blocks[blockNumber]['platform'] = { ...uniqueAddress[blocks[blockNumber].transactions[0].from.toLowerCase()] } || { name: "Unknown Platform 1", address: blocks[blockNumber].transactions[0].from.toLowerCase() };
+          //invest
+
           break;
         case 'Wallet Debit':
           blocks[blockNumber]['platform'] = { ...uniqueAddress[blocks[blockNumber].transactions[0].to.toLowerCase()] } || { name: "Unknown Platform 2", address: blocks[blockNumber].transactions[0].to.toLowerCase() };
           break;
 
         default:
-          // console.log(blockNumber, blocks[blockNumber])
-
           if (blocks[blockNumber].transactions[0].contractAddress.toLowerCase() == "") {
             blocks[blockNumber]['platform'] = { ...uniqueAddress[blocks[blockNumber].transactions[0].contractAddress.toLowerCase()] };
           } else {
-            blocks[blockNumber]['platform'] = { name: "My Wallet", address: "" };
-          }
+            if (blocks[blockNumber].transactions[0].from.toLowerCase() != myAddress.toLowerCase()) {
+              blocks[blockNumber]['platform'] = { name: (uniqueAddress[blocks[blockNumber].transactions[0].from.toLowerCase()] != undefined) ? uniqueAddress[blocks[blockNumber].transactions[0].from.toLowerCase()].name : "Some Exchange", address: blocks[blockNumber].transactions[0].from.toLowerCase() };
+              //invest
 
-          // console.log(blockNumber, blocks[blockNumber]['platform'])
+            } else {
+              blocks[blockNumber]['platform'] = { name: "My Wallet", address: "" };
+            }
+          }
           break;
       }
 
@@ -315,6 +353,7 @@ class App extends Component {
           blocks[blockNumber].blockLabelToken = uniqueTokens[blocks[blockNumber]['out'][0].address]
           uniqueTokens[blocks[blockNumber]['out'][0].address]["pool"] = blocks[blockNumber].blockLabel;
           liquidityPools[chain][blocks[blockNumber]['out'][0].address] = uniqueTokens[blocks[blockNumber]['out'][0].address];
+          console.log();
         }
       } else if ((tr_in == 2) && (tr_out == 1) && (tr_approve >= 1)) {
 
@@ -351,11 +390,24 @@ class App extends Component {
 
       } else {
         blocks[blockNumber]['platform'].tname = "Approval Transaction";
+        if (uniqueAddress[blocks[blockNumber].transactions[0].to]!=undefined) {
+          blocks[blockNumber]['platform'].name = uniqueAddress[blocks[blockNumber].transactions[0].to].name;
+        } else {
+          blocks[blockNumber]['platform'].name = "Decentralised Wallet";
+        }
       }
+
+      if (blocks[blockNumber].platform.tname != undefined && blocks[blockNumber].platform.tname.includes("Add from")) {
+        investments[chain][moment(blocks[blockNumber].transactions[0].timeStamp * 1000).format("YYYY-MM-DD")] = blocks[blockNumber].in;
+      }
+      gasFees[chain] += parseFloat(blocks[blockNumber].gasFee);
 
     });
 
     console.log("liquidityPools", liquidityPools);
+
+    console.log("investments", chain, investments[chain]);
+    console.log("gasFees", chain, gasFees[chain]);
 
     return blocks;
   }
@@ -372,21 +424,21 @@ class App extends Component {
         if (blocks[blockNumber]["platform"].tname.indexOf("Add") !== -1) {
           liquidity_pool[blocks[blockNumber]['blockLabel']].push({
             block: blockNumber,
-            date: moment(blocks[blockNumber].transactions[0].timestamp).format("YYYY-MM-DD"),
+            date: moment(blocks[blockNumber].transactions[0].timeStamp * 1000).format("YYYY-MM-DD"),
             type: "Add",
             value: blocks[blockNumber].in[0].tokenValue,
           });
         } else if (blocks[blockNumber]["platform"].tname.indexOf("Remove") !== -1) {
           liquidity_pool[blocks[blockNumber]['blockLabel']].push({
             block: blockNumber,
-            date: moment(blocks[blockNumber].transactions[0].timestamp).format("YYYY-MM-DD"),
+            date: moment(blocks[blockNumber].transactions[0].timeStamp * 1000).format("YYYY-MM-DD"),
             type: "Remove",
             value: blocks[blockNumber].out[0].tokenValue,
           });
         } else if (blocks[blockNumber]["platform"].tname.indexOf("Stake Again") !== -1) {
           liquidity_pool[blocks[blockNumber]['blockLabel']].push({
             block: blockNumber,
-            date: moment(blocks[blockNumber].transactions[0].timestamp).format("YYYY-MM-DD"),
+            date: moment(blocks[blockNumber].transactions[0].timeStamp * 1000).format("YYYY-MM-DD"),
             type: "Stake Again",
             value: blocks[blockNumber].out[0].tokenValue,
             reward: { tokenAddress:blocks[blockNumber].transactions[0].contractAddress, value:blocks[blockNumber].transactions[0].value}
@@ -394,14 +446,14 @@ class App extends Component {
         } else if (blocks[blockNumber]["platform"].tname.indexOf("Stake") !== -1) {
           liquidity_pool[blocks[blockNumber]['blockLabel']].push({
             block: blockNumber,
-            date: moment(blocks[blockNumber].transactions[0].timestamp).format("YYYY-MM-DD"),
+            date: moment(blocks[blockNumber].transactions[0].timeStamp * 1000).format("YYYY-MM-DD"),
             type: "Stake",
             value: blocks[blockNumber].out[0].tokenValue
           });
         } else if (blocks[blockNumber]["platform"].tname.indexOf("Unstake") !== -1) {
           liquidity_pool[blocks[blockNumber]['blockLabel']].push({
             block: blockNumber,
-            date: moment(blocks[blockNumber].transactions[0].timestamp).format("YYYY-MM-DD"),
+            date: moment(blocks[blockNumber].transactions[0].timeStamp * 1000).format("YYYY-MM-DD"),
             type: "Unstake",
             value: blocks[blockNumber].in[0].tokenValue,
             reward: { tokenAddress:blocks[blockNumber].transactions[0].contractAddress, value: blocks[blockNumber].transactions[0].value }
@@ -608,7 +660,9 @@ class App extends Component {
           ...this.state.address,
           etheriumTransactions: result.result.slice(0, MAX_COUNT),
           etheriumBlocks: blocks,
-          etheriumliquidityPools: this.handleLiquidityPools(blocks)
+          etheriumliquidityPools: this.handleLiquidityPools(blocks),
+          etheriumInvestments: investments["etherium"],
+          etheriumGasFees: gasFees["etherium"]
         }
       })
     }
@@ -664,7 +718,9 @@ class App extends Component {
           ...this.state.address,
           binanceTransactions: result.result.slice(0, MAX_COUNT),
           binanceBlocks: blocks,
-          binanceliquidityPools: this.handleLiquidityPools(blocks)
+          binanceliquidityPools: this.handleLiquidityPools(blocks),
+          binanceInvestments: investments["binance"],
+          binanceGasFees: gasFees["binance"]
         }
       })
     }
@@ -720,7 +776,9 @@ class App extends Component {
           ...this.state.address,
           polygonTransactions: result.result.slice(0, MAX_COUNT),
           polygonBlocks: blocks,
-          polygonliquidityPools: this.handleLiquidityPools(blocks)
+          polygonliquidityPools: this.handleLiquidityPools(blocks),
+          polygonInvestments: investments["polygon"],
+          polygonGasFees: gasFees["polygon"]
         }
       })
     }
