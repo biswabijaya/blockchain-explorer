@@ -13,21 +13,21 @@ var cumuValue = {
 }
 
 const BinanceLiquidityPoolsPane = ({ address }) => {
-  console.log('BinanceLiquidityPoolsPane-Transactions', address.binanceliquidityPools);
+  // console.log('BinanceLiquidityPoolsPane-Transactions', address.binanceliquidityPools);
   // console.log('BinanceLiquidityPoolsPane-length', Object.keys(address.binanceBlocks).length);
   var i = 1;
   if (!address.binanceliquidityPools) return null
   return (
     <>
       <Card.Group itemsPerRow={1} stackable={true} doubling={true}>
-        {Object.keys(address.binanceliquidityPools).map((poolname) => (
+        {Object.keys(address.binanceliquidityPools).map((poolname, poolindex) => (
           <Card key={poolname} className="fluid">
             <Card.Content>
               <Card.Header>
                 <Grid columns='two' divided>
                   <Grid.Row>
                     <Grid.Column style={{ wordWrap: "break-word", fontWeight: "300", fontSize: "12px" }}>
-                      <Grid.Row style={{ fontWeight: "1000", fontSize: "16px", marginBottom: "5px" }}>  {`Pool - ${poolname}`} </Grid.Row>
+                      <Grid.Row style={{ fontWeight: "1000", fontSize: "16px", marginBottom: "5px" }}>  {`${poolindex + 1}. Pool - ${poolname}`} </Grid.Row>
                     </Grid.Column>
                   </Grid.Row>
                 </Grid>

@@ -12,6 +12,9 @@ var cumuValue = {
   "Eth":0
 }
 
+var somewallet = [];
+var somewalletIndexed = [];
+
 const EtheriumBlocksPane = ({ address }) => {
   console.log('EtheriumliquidityPools', address.etheriumliquidityPools);
   console.log('EtheriumBlocksPane', address.etheriumBlocks);
@@ -20,6 +23,19 @@ const EtheriumBlocksPane = ({ address }) => {
   cumuGas = 0;
   cumuValue = {
     "Eth": 0
+  }
+
+  function unknownWallet(addr) {
+    if (somewalletIndexed[addr] == undefined) {
+      somewalletIndexed[addr]="";
+      somewallet.push({ address: addr });
+    }
+    
+    return "SomeWallet (" + addr + ")";
+  }
+
+  function log(variable) {
+    console.log(variable);
   }
 
 
@@ -44,14 +60,14 @@ const EtheriumBlocksPane = ({ address }) => {
   return (
     <>
       <Card.Group itemsPerRow={1} stackable={true} doubling={true}>
-        {Object.keys(address.etheriumBlocks).map((blockKey) => (
+        {Object.keys(address.etheriumBlocks).map((blockKey, blockindex) => (
           <Card key={blockKey} className="fluid">
             <Card.Content>
               <Card.Header>
                 <Grid columns='four' divided>
                   <Grid.Row>
                     <Grid.Column style={{ wordWrap: "break-word", fontWeight: "300", fontSize: "12px"}}>
-                      <Grid.Row style={{ fontWeight: "1000", fontSize: "16px", marginBottom: "5px"}}> <a href={"https://etherscan.io/tx/" + address.etheriumBlocks[blockKey].transactions[0].hash} target="_blank"> {`Block - ${blockKey}`} </a> </Grid.Row>
+                      <Grid.Row style={{ fontWeight: "1000", fontSize: "16px", marginBottom: "5px" }}> <a href={"https://etherscan.io/tx/" + address.etheriumBlocks[blockKey].transactions[0].hash} target="_blank"> {`${blockindex + 1}. Block - ${blockKey}`} </a> </Grid.Row>
                       <Grid.Row> {`${Moment((address.etheriumBlocks[blockKey].transactions[0].timeStamp * 1000)).format('YYYY-MM-DD')}`} </Grid.Row>
                       <Grid.Row> {`${Moment((address.etheriumBlocks[blockKey].transactions[0].timeStamp * 1000)).format('hh:mm:ss a')}`} </Grid.Row>
                       <Grid.Row> {`${Moment((address.etheriumBlocks[blockKey].transactions[0].timeStamp * 1000)).fromNow()}`} </Grid.Row>
@@ -92,9 +108,12 @@ const EtheriumBlocksPane = ({ address }) => {
                         : ''}
                     </Grid.Column>
                     <Grid.Column>
-                      <Grid.Row> 
-                        <Image src='../assets/gasfee.svg' /> &nbsp;
-                        {`${cumuGasFee(parseFloat(address.etheriumBlocks[blockKey].gasFee))} Eth`}
+                      <Grid.Row style={{ fontWeight: "300", fontSize: "14px" }}>
+                        <Image src='../assets/gasfee.svg' /> &nbsp; &nbsp; &nbsp;
+                        {`:  ${address.etheriumBlocks[blockKey].gasFee} `}
+                      </Grid.Row>
+                      <Grid.Row style={{ fontWeight: "400", fontSize: "14px" }}>
+                        {`Total : ${cumuGasFee(parseFloat(address.etheriumBlocks[blockKey].gasFee))} Eth`}
                       </Grid.Row>
                     </Grid.Column>
                   </Grid.Row>
@@ -108,8 +127,8 @@ const EtheriumBlocksPane = ({ address }) => {
                     <Grid.Column>
                       <Grid.Row>
                         <strong>
-                          {(tr.from == address.address) ? ' ' : (contracts[tr.from] != undefined) ? contracts[tr.from].name : (tokens[tr.from] != undefined) ? tokens[tr.from].name :  "SomeWallet (" + tr.from + ")"}
-                          {(tr.to == address.address) ? ' '   : (contracts[tr.to] != undefined) ? contracts[tr.to].name :(tokens[tr.to] != undefined) ? tokens[tr.to].name :  "SomeWallet (" + tr.to + ")"}
+                          {(tr.from == address.address) ? ' ' : (contracts[tr.from] != undefined) ? contracts[tr.from].name : (tokens[tr.from] != undefined) ? tokens[tr.from].name : unknownWallet(tr.from)}
+                          {(tr.to == address.address) ? ' ' : (contracts[tr.to] != undefined) ? contracts[tr.to].name : (tokens[tr.to] != undefined) ? tokens[tr.to].name : unknownWallet(tr.to)}
                         </strong>
                       </Grid.Row>
                       {/* trade exchange */}
@@ -179,12 +198,11 @@ const EtheriumBlocksPane = ({ address }) => {
               </Grid.Row>
             </Grid>
           ))}
+          {log(somewallet)}
         </Card.Content>
       </Card>
     </>
   )
 }
-
-
 
 export default EtheriumBlocksPane

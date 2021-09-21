@@ -40,3 +40,127 @@ export function getTokenInfo(contractAddress) {
     }
   })
 }
+
+
+export function getLiquidityPools(address) {
+
+  let body = { query: `
+                    {
+                      liquidityPositionSnapshots(orderBy: timestamp,orderDirection: asc,where: {user: "${address}"} first: 1000) {
+                      block,
+                      timestamp,
+                      pair {
+                          id,
+                          reserve0,
+                          reserve1,
+                          totalSupply,
+                          token0 {
+                            id,
+                            symbol,
+                            name,
+                            decimals
+                        }
+                        token1 {
+                            id,
+                            symbol,
+                            name,
+                            decimals
+                        }
+                      },
+                        liquidityTokenBalance,
+                        liquidityTokenTotalSupply,
+                        token0PriceUSD,
+                        token1PriceUSD,
+                        reserve0,
+                        reserve1,
+                        reserveUSD
+                      }
+                    }
+                `,
+    variables: {}
+  }
+
+  var liquidityPoolsByBlock = {};
+
+  let options = {};
+  axios.post('https://api.thegraph.com/subgraphs/name/sushiswap/exchange', body, options)
+  .then((response) => {
+    // console.log('fdfdfdfdfdfdffdfdfdfdfdfdfdf', response.data.data.liquidityPositionSnapshots);
+
+    response.data.data.liquidityPositionSnapshots.forEach((transaction) => {
+      if (liquidityPoolsByBlock[transaction.block] == undefined) {
+        liquidityPoolsByBlock[transaction.block] = {
+          name: transaction.pair.token0.symbol + "" + transaction.pair.token1.symbol,
+          poolname: "sushiswap",
+          address: transaction.pair.id,
+          priceRatio: +transaction.token0PriceUSD / +transaction.token1PriceUSD,
+          priceUSD: {
+            [transaction.pair.token0.symbol]: transaction.token0PriceUSD,
+            [transaction.pair.token1.symbol]: transaction.token1PriceUSD
+          },
+          reserveTotal: {
+            [transaction.pair.token0.symbol]: transaction.pair.reserve0,
+            [transaction.pair.token1.symbol]: transaction.pair.reserve1
+          },
+          reserveAvailable: {
+            [transaction.pair.token0.symbol]: transaction.reserve0,
+            [transaction.pair.token1.symbol]: transaction.reserve1
+          },
+          reserveChange: {
+            [transaction.pair.token0.symbol]: (+transaction.pair.reserve0) - (+transaction.reserve0),
+            [transaction.pair.token1.symbol]: (+transaction.pair.reserve1) - (+transaction.reserve1)
+          },
+          reserveUSD: transaction.reserveUSD,
+          balanceLPToken: transaction.liquidityTokenBalance,
+          supplyLPToken: transaction.liquidityTokenTotalSupply,
+          pair: transaction.pair,
+
+        };
+      }
+    });
+
+    axios.post('https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2', body, options)
+      .then((response) => {
+        // console.log('fdfdfdfdfdfdffdfdfdfdfdfdfdf', response.data.data.liquidityPositionSnapshots);
+
+        response.data.data.liquidityPositionSnapshots.forEach((transaction) => {
+          if (liquidityPoolsByBlock[transaction.block] == undefined) {
+            liquidityPoolsByBlock[transaction.block] = {
+              name: transaction.pair.token0.symbol + "" + transaction.pair.token1.symbol,
+              poolname:"uniswap",
+              address: transaction.pair.id,
+              priceRatio: +transaction.token0PriceUSD / +transaction.token1PriceUSD,
+              priceUSD: {
+                [transaction.pair.token0.symbol]: transaction.token0PriceUSD,
+                [transaction.pair.token1.symbol]: transaction.token1PriceUSD
+              },
+              reserveTotal: {
+                [transaction.pair.token0.symbol]: transaction.pair.reserve0,
+                [transaction.pair.token1.symbol]: transaction.pair.reserve1
+              },
+              reserveAvailable: {
+                [transaction.pair.token0.symbol]: transaction.reserve0,
+                [transaction.pair.token1.symbol]: transaction.reserve1
+              },
+              reserveChange: {
+                [transaction.pair.token0.symbol]: (+transaction.pair.reserve0) - (+transaction.reserve0),
+                [transaction.pair.token1.symbol]: (+transaction.pair.reserve1) - (+transaction.reserve1)
+              },
+              reserveUSD: transaction.reserveUSD,
+              balanceLPToken: transaction.liquidityTokenBalance,
+              supplyLPToken: transaction.liquidityTokenTotalSupply,
+              pair: transaction.pair,
+
+            };
+          }
+        });
+      });
+  });
+    
+
+  
+
+  
+
+  return liquidityPoolsByBlock;
+}

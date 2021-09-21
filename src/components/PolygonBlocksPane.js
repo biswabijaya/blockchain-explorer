@@ -16,18 +16,43 @@ const PolygonBlocksPane = ({ address }) => {
   console.log('PolygonliquidityPools', address.polygonliquidityPools);
   console.log('PolygonBlocksPane', address.polygonBlocks);
   var i = 1;
+
+  cumuGas = 0;
+  cumuValue = {
+    "MATIC": 0
+  }
+
+
+  function cumuGasFee(gasFee, returnable = true) {
+    // console.log(gasFee);
+    cumuGas += gasFee;
+    if (returnable)
+      return cumuGas.toFixed(4);
+    else
+      return ' ';
+  }
+
+  function cumuTokenValue(tokenSymbol, tokenValue, credit = false) {
+    if (cumuValue[tokenSymbol] == undefined) {
+      cumuValue[tokenSymbol] = 0;
+    }
+
+    cumuValue[tokenSymbol] = credit ? cumuValue[tokenSymbol] + tokenValue : cumuValue[tokenSymbol] - tokenValue;
+    return cumuValue[tokenSymbol].toFixed(4);
+  }
+
   if (!address.polygonBlocks) return null
   return (
     <>
       <Card.Group itemsPerRow={1} stackable={true} doubling={true}>
-        {Object.keys(address.polygonBlocks).map((blockKey) => (
+        {Object.keys(address.polygonBlocks).map((blockKey,blockindex) => (
           <Card key={blockKey} className="fluid">
             <Card.Content>
               <Card.Header>
                 <Grid columns='four' divided>
                   <Grid.Row>
                     <Grid.Column style={{ wordWrap: "break-word", fontWeight: "300", fontSize: "12px" }}>
-                      <Grid.Row style={{ fontWeight: "1000", fontSize: "16px", marginBottom: "5px" }}> <a href={"https://polygoncan.com/tx/" + address.polygonBlocks[blockKey].transactions[0].hash} target="_blank"> {`Block - ${blockKey}`} </a> </Grid.Row>
+                      <Grid.Row style={{ fontWeight: "1000", fontSize: "16px", marginBottom: "5px" }}> <a href={"https://polygoncan.com/tx/" + address.polygonBlocks[blockKey].transactions[0].hash} target="_blank"> {` ${blockindex+1}. Block - ${blockKey}`} </a> </Grid.Row>
                       <Grid.Row> {`${Moment((address.polygonBlocks[blockKey].transactions[0].timeStamp * 1000)).format('YYYY-MM-DD')}`} </Grid.Row>
                       <Grid.Row> {`${Moment((address.polygonBlocks[blockKey].transactions[0].timeStamp * 1000)).format('hh:mm:ss a')}`} </Grid.Row>
                       <Grid.Row> {`${Moment((address.polygonBlocks[blockKey].transactions[0].timeStamp * 1000)).fromNow()}`} </Grid.Row>
@@ -68,9 +93,12 @@ const PolygonBlocksPane = ({ address }) => {
                         : ''}
                     </Grid.Column>
                     <Grid.Column>
-                      <Grid.Row>
-                        <Image src='../assets/gasfee.svg' /> &nbsp;
-                        {`${cumuGasFee(parseFloat(address.polygonBlocks[blockKey].gasFee))} MATIC`}
+                      <Grid.Row style={{ fontWeight: "300", fontSize: "14px" }}>
+                        <Image src='../assets/gasfee.svg' /> &nbsp; &nbsp; &nbsp;
+                        {`:  ${address.polygonBlocks[blockKey].gasFee} `}
+                      </Grid.Row>
+                      <Grid.Row style={{ fontWeight: "400", fontSize: "14px" }}>
+                        {`Total : ${cumuGasFee(parseFloat(address.polygonBlocks[blockKey].gasFee))} MATIC`}
                       </Grid.Row>
                     </Grid.Column>
                   </Grid.Row>
@@ -159,24 +187,6 @@ const PolygonBlocksPane = ({ address }) => {
       </Card>
     </>
   )
-}
-
-function cumuGasFee(gasFee, returnable = true) {
-  // console.log(gasFee);
-  cumuGas += gasFee;
-  if (returnable)
-    return cumuGas.toFixed(4);
-  else
-    return ' ';
-}
-
-function cumuTokenValue(tokenSymbol, tokenValue, credit = false) {
-  if (cumuValue[tokenSymbol] == undefined) {
-    cumuValue[tokenSymbol] = 0;
-  }
-
-  cumuValue[tokenSymbol] = credit ? cumuValue[tokenSymbol] + tokenValue : cumuValue[tokenSymbol] - tokenValue;
-  return cumuValue[tokenSymbol].toFixed(4);
 }
 
 export default PolygonBlocksPane

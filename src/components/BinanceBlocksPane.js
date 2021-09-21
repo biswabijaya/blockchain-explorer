@@ -16,18 +16,43 @@ const BinanceBlocksPane = ({ address }) => {
   console.log('BinanceliquidityPools', address.binanceliquidityPools);
   console.log('BinanceBlocksPane', address.binanceBlocks);
   var i = 1;
+
+  cumuGas = 0;
+  cumuValue = {
+    "BNB": 0
+  }
+
+
+  function cumuGasFee(gasFee, returnable = true) {
+    // console.log(gasFee);
+    cumuGas += gasFee;
+    if (returnable)
+      return cumuGas.toFixed(4);
+    else
+      return ' ';
+  }
+
+  function cumuTokenValue(tokenSymbol, tokenValue, credit = false) {
+    if (cumuValue[tokenSymbol] == undefined) {
+      cumuValue[tokenSymbol] = 0;
+    }
+
+    cumuValue[tokenSymbol] = credit ? cumuValue[tokenSymbol] + tokenValue : cumuValue[tokenSymbol] - tokenValue;
+    return cumuValue[tokenSymbol].toFixed(4);
+  }
+
   if (!address.binanceBlocks) return null
   return (
     <>
       <Card.Group itemsPerRow={1} stackable={true} doubling={true}>
-        {Object.keys(address.binanceBlocks).map((blockKey) => (
+        {Object.keys(address.binanceBlocks).map((blockKey,blockindex) => (
           <Card key={blockKey} className="fluid">
             <Card.Content>
               <Card.Header>
                 <Grid columns='four' divided>
                   <Grid.Row>
                     <Grid.Column style={{ wordWrap: "break-word", fontWeight: "300", fontSize: "12px" }}>
-                      <Grid.Row style={{ fontWeight: "1000", fontSize: "16px", marginBottom: "5px" }}> <a href={"https://bscscan.com/tx/" + address.binanceBlocks[blockKey].transactions[0].hash} target="_blank"> {`Block - ${blockKey}`} </a> </Grid.Row>
+                      <Grid.Row style={{ fontWeight: "1000", fontSize: "16px", marginBottom: "5px" }}> <a href={"https://bscscan.com/tx/" + address.binanceBlocks[blockKey].transactions[0].hash} target="_blank"> {`${blockindex + 1}. Block - ${blockKey}`} </a> </Grid.Row>
                       <Grid.Row> {`${Moment((address.binanceBlocks[blockKey].transactions[0].timeStamp * 1000)).format('YYYY-MM-DD')}`} </Grid.Row>
                       <Grid.Row> {`${Moment((address.binanceBlocks[blockKey].transactions[0].timeStamp * 1000)).format('hh:mm:ss a')}`} </Grid.Row>
                       <Grid.Row> {`${Moment((address.binanceBlocks[blockKey].transactions[0].timeStamp * 1000)).fromNow()}`} </Grid.Row>
@@ -68,9 +93,12 @@ const BinanceBlocksPane = ({ address }) => {
                         : ''}
                     </Grid.Column>
                     <Grid.Column>
-                      <Grid.Row>
-                        <Image src='../assets/gasfee.svg' /> &nbsp;
-                        {`${cumuGasFee(parseFloat(address.binanceBlocks[blockKey].gasFee))} BNB`}
+                      <Grid.Row style={{ fontWeight: "300", fontSize: "14px" }}>
+                        <Image src='../assets/gasfee.svg' /> &nbsp; &nbsp; &nbsp;
+                        {`:  ${address.binanceBlocks[blockKey].gasFee} `}
+                      </Grid.Row>
+                      <Grid.Row style={{ fontWeight: "400", fontSize: "14px" }}>
+                        {`Total : ${cumuGasFee(parseFloat(address.binanceBlocks[blockKey].gasFee))} BNB`}
                       </Grid.Row>
                     </Grid.Column>
                   </Grid.Row>
@@ -157,24 +185,6 @@ const BinanceBlocksPane = ({ address }) => {
       </Card>
     </>
   )
-}
-
-function cumuGasFee(gasFee, returnable = true) {
-  // console.log(gasFee);
-  cumuGas += gasFee;
-  if (returnable)
-    return cumuGas.toFixed(4);
-  else
-    return ' ';
-}
-
-function cumuTokenValue(tokenSymbol, tokenValue, credit = false) {
-  if (cumuValue[tokenSymbol] == undefined) {
-    cumuValue[tokenSymbol] = 0;
-  }
-
-  cumuValue[tokenSymbol] = credit ? cumuValue[tokenSymbol] + tokenValue : cumuValue[tokenSymbol] - tokenValue;
-  return cumuValue[tokenSymbol].toFixed(4);
 }
 
 export default BinanceBlocksPane

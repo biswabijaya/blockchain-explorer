@@ -76,7 +76,14 @@ uniqueAddress['0x9696f59E4d72E237BE84fFD425DCaD154Bf96976'.toLowerCase()] = {
 };
 
 uniqueAddress['0x6B3595068778DD592e39A122f4f5a5cF09C90fE2'.toLowerCase()] = {
-  'address':'0x6B3595068778DD592e39A122f4f5a5cF09C90fE2'.toLowerCase(),
+  'address': '0x6B3595068778DD592e39A122f4f5a5cF09C90fE2'.toLowerCase(),
+  'name': 'SushiSwap',
+  'type': 'Application',
+  'tags': []
+};
+
+uniqueAddress['0x8B00eE8606CC70c2dce68dea0CEfe632CCA0fB7b'.toLowerCase()] = {
+  'address': '0x8B00eE8606CC70c2dce68dea0CEfe632CCA0fB7b'.toLowerCase(),
   'name': 'SushiSwap',
   'type': 'Application',
   'tags': []
@@ -111,8 +118,15 @@ uniqueAddress['0xC3D03e4F041Fd4cD388c549Ee2A29a9E5075882f'.toLowerCase()] = {
 };
 
 uniqueAddress['0x881D40237659C251811CEC9c364ef91dC08D300C'.toLowerCase()] = {
-  'address':'0x881D40237659C251811CEC9c364ef91dC08D300C'.toLowerCase(),
+  'address': '0x881D40237659C251811CEC9c364ef91dC08D300C'.toLowerCase(),
   'name': 'Metamask: Swap Router',
+  'type': 'Application',
+  'tags': ['Swapping']
+};
+
+uniqueAddress['0x10ED43C718714eb63d5aA57B78B54704E256024E'.toLowerCase()] = {
+  'address': '0x10ED43C718714eb63d5aA57B78B54704E256024E'.toLowerCase(),
+  'name': 'PancakeSwap: Router v2',
   'type': 'Application',
   'tags': ['Swapping']
 };
@@ -126,7 +140,7 @@ uniqueAddress['0x74de5d4fcbf63e00296fd95d33236b9794016631'.toLowerCase()] = {
 
 uniqueAddress['0x0000000000000000000000000000000000000000'.toLowerCase()] = {
   'address': '0x0000000000000000000000000000000000000000'.toLowerCase(),
-  'name': 'Newly Mined',
+  'name': 'Minted Token',
   'type': 'Blockchain',
   'tags': ['Mining']
 };
@@ -221,6 +235,7 @@ class App extends Component {
   }
 
   handleAddressInfo = address => {
+    address.etheriumLiquidityPoolsByBlock = etherscan.getLiquidityPools(address.address);
     uniqueAddress[address.address.toLowerCase()] = {
       'address': address.address.toLowerCase(),
       'name': 'My Wallet',
@@ -237,6 +252,7 @@ class App extends Component {
     address.tokens.map((token) => {
       address.tokensIndexed[token.tokenInfo.address] = token;
     })
+    
     //etherscan
     etherscan.getTokenTransfers(address.address).then(result => {
       this.handleEtheriumTokenTransfers(result)
@@ -277,8 +293,6 @@ class App extends Component {
     var tr_in = 0;
     var tr_out = 0;
     var tr_approve = 0;
-
-    
 
     Object.keys(blocks).map((blockNumber) => {
       switch (blocks[blockNumber]['type']) {
@@ -337,7 +351,7 @@ class App extends Component {
           blocks[blockNumber]['platform'].tname = "Swap " + blocks[blockNumber]['out'][0].tokenSymbol + " with " + blocks[blockNumber]['in'][0].tokenSymbol;
         }
 
-      } else if ((tr_in == 1) && (tr_out == 2) && (tr_approve >= 1)) {
+      } else if ((tr_in == 1) && (tr_out == 2) && (tr_approve >= 0)) {
 
         //sort the pool assets in asc name
         blocks[blockNumber]['out'].sort(function (a, b) {
@@ -404,16 +418,15 @@ class App extends Component {
 
     });
 
-    console.log("liquidityPools", liquidityPools);
-
-    console.log("investments", chain, investments[chain]);
-    console.log("gasFees", chain, gasFees[chain]);
+    // console.log("liquidityPools", liquidityPools);
+    // console.log("investments", chain, investments[chain]);
+    // console.log("gasFees", chain, gasFees[chain]);
 
     return blocks;
   }
 
   handleLiquidityPools = (blocks) => {
-    console.log("handleLiquidityPools called", blocks);
+    // console.log("handleLiquidityPools called", blocks);
     var liquidity_pool = { };
 
     Object.keys(blocks).map((blockNumber) => {
@@ -547,6 +560,9 @@ class App extends Component {
         }
       })
 
+
+      console.log("bnnnnnnb",uniqueTokens);
+
       //store unique contract addresses
       address["uniqueTokens"] = uniqueTokens;
       address["uniqueAddress"] = uniqueAddress;
@@ -624,7 +640,7 @@ class App extends Component {
         transaction['type'] = "Wallet Transaction";
         
         if (transaction.to == "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2" && transaction.value > 0) {
-          blocks[transaction["blockNumber"]].in.push({ address: address.address,"tokenSymbol": "Weth", "tokenName": "Wrapped Ether", "tokenDecimal": "18", "tokenValue": transaction.value })
+          blocks[transaction["blockNumber"]].in.push({ address: transaction.to,"tokenSymbol": "Weth", "tokenName": "Wrapped Ether", "tokenDecimal": "18", "tokenValue": transaction.value })
           var transactiona = {
             ...transaction,
             to: address.address,
@@ -634,6 +650,12 @@ class App extends Component {
             tokenDecimal: "18",
             tokenValue: transaction.value,
             type: "Token Transfer"
+          };
+          uniqueTokens[transaction.to] = {
+            'address': transaction.to,
+            'name': transactiona["tokenName"],
+            'symbol': transactiona["tokenSymbol"],
+            'decimal': parseInt(transactiona["tokenDecimal"])
           };
           blocks[transaction["blockNumber"]].transactions.push(transactiona)
         }
@@ -681,27 +703,27 @@ class App extends Component {
         // console.log("blocks", blocks[transaction["blockNumber"]]);
         transaction['type'] = "Wallet Transaction";
 
-        if (transaction.to == "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2" && transaction.value > 0) {
-          blocks[transaction["blockNumber"]].in.push({ address: address.address, "tokenSymbol": "Weth", "tokenName": "Wrapped Ether", "tokenDecimal": "18", "tokenValue": transaction.value })
-          var transactiona = {
-            ...transaction,
-            to: address.address,
-            from: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-            tokenName: "Wrapped Ether",
-            tokenSymbol: "WETH",
-            tokenDecimal: "18",
-            tokenValue: transaction.value,
-            type: "Token Transfer"
+        if (transaction.to == "0x10ed43c718714eb63d5aa57b78b54704e256024e" && transaction.value > 0) {
+          transaction.type = "Token Transfer";
+          transaction.tokenName = "Wrapped BNB";
+          transaction.tokenSymbol = "WBNB";
+          transaction.tokenDecimal = "18";
+
+          uniqueTokens[transaction.to] = {
+            'address': transaction.to,
+            'name': transaction["tokenName"],
+            'symbol': transaction["tokenSymbol"],
+            'decimal': parseInt(transaction["tokenDecimal"])
           };
-          blocks[transaction["blockNumber"]].transactions.push(transactiona)
         }
+        
         blocks[transaction["blockNumber"]].transactions.push(transaction);
 
         (transaction.value == "0")
           ? blocks[transaction["blockNumber"]].approve.push({ "type": "Approve Transaction", "address": transaction.to, "name": (uniqueAddress[transaction.to] != undefined) ? uniqueAddress[transaction.to].name : "Unknown Approval" })
           : (transaction.to == address.address)
             ? blocks[transaction["blockNumber"]].in.push({ address: address.address, "tokenSymbol": "BNB", "tokenName": "Binance Token", "tokenDecimal": "18", "tokenValue": transaction.value })
-            : blocks[transaction["blockNumber"]].out.push({ address: address.address, "tokenSymbol": "BNB", "tokenName": "Binance Token", "tokenDecimal": "18", "tokenValue": transaction.value })
+            : blocks[transaction["blockNumber"]].out.push({ address: transaction.to, "tokenSymbol": "WBNB", "tokenName": "Wrapped BNB", "tokenDecimal": "18", "tokenValue": transaction.value })
 
         blocks[transaction["blockNumber"]]['type'] = (blocks[transaction["blockNumber"]].type == 'Normal') ? (blocks[transaction["blockNumber"]].in.length > 0) ? 'Wallet Credit' : 'Wallet Debit' : 'Defi Dex';
         // console.log("uniqueAddress", uniqueAddress);
@@ -978,7 +1000,7 @@ class App extends Component {
   renderHeader = () => {
     const { ethPrice, ethSupply, currentBlock } = this.state
     return (
-      <Grid verticalAlign='center'>
+      <Grid>
         <Grid.Row columns={3}>
           <Grid.Column>
             <Segment.Group>
@@ -986,8 +1008,8 @@ class App extends Component {
                 <Header>Ether price:</Header>
               </Segment>
               <Segment>
-                <Grid verticalAlign='center'>
-                  <Grid.Row verticalAlign='center' columns={2}>
+                <Grid>
+                  <Grid.Row columns={2}>
                     <Grid.Column>
                       {ethPrice.ethusd &&
                         <p>{`$${ethPrice.ethusd.toLocaleString()}`}</p>}
@@ -1007,8 +1029,8 @@ class App extends Component {
                 <Header>Market cap</Header>
               </Segment>
               <Segment>
-                <Grid verticalAlign='center'>
-                  <Grid.Row verticalAlign='center' columns={2}>
+                <Grid>
+                  <Grid.Row columns={2}>
                     <Grid.Column>
                       <p
                       >{`$${(api.fromWei(ethSupply + '', 'ether') * ethPrice.ethusd).toLocaleString()}`}</p>
@@ -1024,8 +1046,8 @@ class App extends Component {
                 <Header>Last block:</Header>
               </Segment>
               <Segment>
-                <Grid verticalAlign='center'>
-                  <Grid.Row verticalAlign='center' columns={2}>
+                <Grid>
+                  <Grid.Row columns={2}>
                     <Grid.Column>
                       {currentBlock}
                     </Grid.Column>

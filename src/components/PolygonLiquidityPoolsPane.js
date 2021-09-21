@@ -13,7 +13,7 @@ var cumuValue = {
 }
 
 const PolygonLiquidityPoolsPane = ({ address }) => {
-  console.log('PolygonLiquidityPoolsPane-Transactions', address.polygonliquidityPools);
+  // console.log('PolygonLiquidityPoolsPane-Transactions', address.polygonliquidityPools);
   // console.log('PolygonLiquidityPoolsPane-length', Object.keys(address.polygonBlocks).length);
   var i = 1;
   if (!address.polygonliquidityPools) return null
