@@ -85,18 +85,17 @@ export function getLiquidityPools(address) {
   let options = {};
   axios.post('https://api.thegraph.com/subgraphs/name/sushiswap/exchange', body, options)
   .then((response) => {
-    // console.log('fdfdfdfdfdfdffdfdfdfdfdfdfdf', response.data.data.liquidityPositionSnapshots);
-
     response.data.data.liquidityPositionSnapshots.forEach((transaction) => {
       if (liquidityPoolsByBlock[transaction.block] == undefined) {
         liquidityPoolsByBlock[transaction.block] = {
           name: transaction.pair.token0.symbol + "" + transaction.pair.token1.symbol,
           poolname: "sushiswap",
           address: transaction.pair.id,
-          priceRatio: +transaction.token0PriceUSD / +transaction.token1PriceUSD,
+          priceRatio: +(+transaction.token0PriceUSD / +transaction.token1PriceUSD).toFixed(4),
           priceUSD: {
-            [transaction.pair.token0.symbol]: transaction.token0PriceUSD,
-            [transaction.pair.token1.symbol]: transaction.token1PriceUSD
+            [transaction.pair.token0.symbol]: +transaction.token0PriceUSD,
+            [transaction.pair.token1.symbol]: +transaction.token1PriceUSD,
+            lptoken: +(+transaction.reserveUSD / +transaction.liquidityTokenTotalSupply).toFixed(8)
           },
           reserveTotal: {
             [transaction.pair.token0.symbol]: transaction.pair.reserve0,
@@ -110,9 +109,9 @@ export function getLiquidityPools(address) {
             [transaction.pair.token0.symbol]: (+transaction.pair.reserve0) - (+transaction.reserve0),
             [transaction.pair.token1.symbol]: (+transaction.pair.reserve1) - (+transaction.reserve1)
           },
-          reserveUSD: transaction.reserveUSD,
-          balanceLPToken: transaction.liquidityTokenBalance,
-          supplyLPToken: transaction.liquidityTokenTotalSupply,
+          reserveUSD: +(+transaction.reserveUSD).toFixed(4),
+          balanceLPToken: +transaction.liquidityTokenBalance,
+          supplyLPToken: +transaction.liquidityTokenTotalSupply,
           pair: transaction.pair,
 
         };
@@ -129,10 +128,11 @@ export function getLiquidityPools(address) {
               name: transaction.pair.token0.symbol + "" + transaction.pair.token1.symbol,
               poolname:"uniswap",
               address: transaction.pair.id,
-              priceRatio: +transaction.token0PriceUSD / +transaction.token1PriceUSD,
+              priceRatio: +(+transaction.token0PriceUSD / +transaction.token1PriceUSD).toFixed(4),
               priceUSD: {
-                [transaction.pair.token0.symbol]: transaction.token0PriceUSD,
-                [transaction.pair.token1.symbol]: transaction.token1PriceUSD
+                [transaction.pair.token0.symbol]: +transaction.token0PriceUSD,
+                [transaction.pair.token1.symbol]: +transaction.token1PriceUSD,
+                lptoken: +(+transaction.reserveUSD / +transaction.liquidityTokenTotalSupply).toFixed(8)
               },
               reserveTotal: {
                 [transaction.pair.token0.symbol]: transaction.pair.reserve0,
@@ -146,9 +146,9 @@ export function getLiquidityPools(address) {
                 [transaction.pair.token0.symbol]: (+transaction.pair.reserve0) - (+transaction.reserve0),
                 [transaction.pair.token1.symbol]: (+transaction.pair.reserve1) - (+transaction.reserve1)
               },
-              reserveUSD: transaction.reserveUSD,
-              balanceLPToken: transaction.liquidityTokenBalance,
-              supplyLPToken: transaction.liquidityTokenTotalSupply,
+              reserveUSD: +(+transaction.reserveUSD).toFixed(4),
+              balanceLPToken: +transaction.liquidityTokenBalance,
+              supplyLPToken: +transaction.liquidityTokenTotalSupply,
               pair: transaction.pair,
 
             };

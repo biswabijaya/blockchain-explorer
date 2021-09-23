@@ -19,8 +19,13 @@ import {
 import AddressInfo from './components/AddressInfo'
 import ContractInfo from './components/ContractInfo'
 import TabbedContent from './containers/TabbedContent'
+import { objectExpression } from '@babel/types'
 
-const MAX_COUNT = 200
+const MAX_COUNT = 200;
+var etheriumLiquidityPoolsByBlock = {};
+var binanceLiquidityPoolsByBlock={};
+var polygonLiquidityPoolsByBlock = {};
+
 var addr = '', uniqueTokens = {}, uniqueAddress = {};
 var liquidityPools ={
   etherium: { },
@@ -236,6 +241,15 @@ class App extends Component {
 
   handleAddressInfo = address => {
     address.etheriumLiquidityPoolsByBlock = etherscan.getLiquidityPools(address.address);
+    address.binanceLiquidityPoolsByBlock = "";
+    address.polygonLiquidityPoolsByBlock = "";
+
+    etheriumLiquidityPoolsByBlock = address.etheriumLiquidityPoolsByBlock;
+    binanceLiquidityPoolsByBlock = address.binanceLiquidityPoolsByBlock;
+    polygonLiquidityPoolsByBlock = address.polygonLiquidityPoolsByBlock;
+
+    console.log("dddddd", address);
+
     uniqueAddress[address.address.toLowerCase()] = {
       'address': address.address.toLowerCase(),
       'name': 'My Wallet',
@@ -252,40 +266,45 @@ class App extends Component {
     address.tokens.map((token) => {
       address.tokensIndexed[token.tokenInfo.address] = token;
     })
+
+    setTimeout(()=>{
+      console.log("called");
+      //etherscan
+      etherscan.getTokenTransfers(address.address).then(result => {
+        this.handleEtheriumTokenTransfers(result)
+        etherscan.getTransactions(address.address).then(result => {
+          this.handleEtheriumAddressTransactions(result)
+          etherscan
+            .getMinedBlocks(address.address)
+            .then(result => this.handleEtheriumMinedBlocks(result))
+            .catch(this.onError)
+        })
+      });
+      //bscscan
+      bscscan.getTokenTransfers(address.address).then(result => {
+        this.handleBinanceTokenTransfers(result)
+        bscscan.getTransactions(address.address).then(result => {
+          this.handleBinanceAddressTransactions(result)
+          bscscan
+            .getMinedBlocks(address.address)
+            .then(result => this.handleBinanceMinedBlocks(result))
+            .catch(this.onError)
+        })
+      });
+      //polygonscan
+      polygonscan.getTokenTransfers(address.address).then(result => {
+        this.handlePolygonTokenTransfers(result)
+        polygonscan.getTransactions(address.address).then(result => {
+          this.handlePolygonAddressTransactions(result)
+          polygonscan
+            .getMinedBlocks(address.address)
+            .then(result => this.handlePolygonMinedBlocks(result))
+            .catch(this.onError)
+        })
+      });
+    },1000)
     
-    //etherscan
-    etherscan.getTokenTransfers(address.address).then(result => {
-      this.handleEtheriumTokenTransfers(result)
-      etherscan.getTransactions(address.address).then(result => {
-        this.handleEtheriumAddressTransactions(result)        
-        etherscan
-          .getMinedBlocks(address.address)
-          .then(result => this.handleEtheriumMinedBlocks(result))
-          .catch(this.onError)
-      })
-    });
-    //bscscan
-    bscscan.getTokenTransfers(address.address).then(result => {
-      this.handleBinanceTokenTransfers(result)
-      bscscan.getTransactions(address.address).then(result => {
-        this.handleBinanceAddressTransactions(result)
-        bscscan
-          .getMinedBlocks(address.address)
-          .then(result => this.handleBinanceMinedBlocks(result))
-          .catch(this.onError)
-      })
-    });
-    //polygonscan
-    polygonscan.getTokenTransfers(address.address).then(result => {
-      this.handlePolygonTokenTransfers(result)
-      polygonscan.getTransactions(address.address).then(result => {
-        this.handlePolygonAddressTransactions(result)
-        polygonscan
-          .getMinedBlocks(address.address)
-          .then(result => this.handlePolygonMinedBlocks(result))
-          .catch(this.onError)
-      })
-    });
+    
   }
 
   handleLabelling = (blocks,chain) => {
@@ -425,51 +444,550 @@ class App extends Component {
     return blocks;
   }
 
-  handleLiquidityPools = (blocks) => {
-    // console.log("handleLiquidityPools called", blocks);
-    var liquidity_pool = { };
+  handleLiquidityPools = (blocks, liquidityPoolsByBlock) => {
 
-    Object.keys(blocks).map((blockNumber) => {
+    var address = this.state.address;
+    
+    let liquidity_pool = {};
+    let pool_name = "", token_symbol = "";
+    let liquidity_pool_assets = { };
+    let liquidity_pool_total = { };
+
+
+    let newratio = 1, oldratio = 1, priceratio=1, il=0;
+
+    Object.keys(liquidityPoolsByBlock).map((blockNumber) => {
+
+      // console.log("--------Block Called", blockNumber);
+
+      //get a block
       if (blocks[blockNumber]['blockLabel'] != undefined) {
-        if (liquidity_pool[blocks[blockNumber]['blockLabel']] == undefined) {
-          liquidity_pool[blocks[blockNumber]['blockLabel']] = [];
+        
+        pool_name = blocks[blockNumber]['blockLabel'];
+
+        // console.log("--------pool_name Called ", pool_name);
+
+        if (liquidity_pool[pool_name] == undefined) {
+          liquidity_pool[pool_name] = [];
+
+          liquidity_pool_assets[pool_name] = {};
+          liquidity_pool_total[pool_name] = {};
+          
+
+          token_symbol = blocks[blockNumber].out[0].tokenSymbol;
+          liquidity_pool_assets[pool_name][token_symbol] = {
+            tokenValue: 0,
+            tokenPrice: +liquidityPoolsByBlock[blockNumber]?.priceUSD[token_symbol],
+            added: 0,
+            withdrawn: 0,
+            invested: 0,
+            current: 0
+          }
+          // console.log("--------PoolToken---Init1----" + token_symbol, 0, blockNumber, { ...liquidity_pool_assets[pool_name][token_symbol] });
+
+          token_symbol = blocks[blockNumber].out[1].tokenSymbol;
+          liquidity_pool_assets[pool_name][token_symbol] = {
+            tokenValue: 0,
+            tokenPrice: +liquidityPoolsByBlock[blockNumber]?.priceUSD[token_symbol],
+            added: 0,
+            withdrawn: 0,
+            invested: 0,
+            current: 0
+          }
+          // console.log("--------PoolToken---Init2----" + token_symbol, 1, blockNumber, { ...liquidity_pool_assets[pool_name][token_symbol] });
+
+          liquidity_pool_total[pool_name] = {
+            priceRatio: liquidityPoolsByBlock[blockNumber]?.priceRatio || 1,
+            rewards: 0,fees: 0,
+            il: 0,
+            ilvalue: 0
+          }
+
+        } else {
+          token_symbol = Object.keys(liquidity_pool_assets[pool_name])[0];
+
+          //init quantity and update price
+          liquidity_pool_assets[pool_name][token_symbol].tokenValue += 0;
+          liquidity_pool_assets[pool_name][token_symbol].tokenPrice = +liquidityPoolsByBlock[blockNumber]?.priceUSD[token_symbol];
+
+          //initialise added, withdrawn
+          liquidity_pool_assets[pool_name][token_symbol]["added"] = 0;
+          liquidity_pool_assets[pool_name][token_symbol]["withdrawn"] = 0;
+
+          //update invested amount (after addition) and current amount
+          liquidity_pool_assets[pool_name][token_symbol]["invested"] += 0;
+          liquidity_pool_assets[pool_name][token_symbol]["current"] += 0;
+
+          console.log("-------found", blockNumber, token_symbol, { ...liquidity_pool_assets }, { ...liquidity_pool_total });
+
+          token_symbol = Object.keys(liquidity_pool_assets[pool_name])[1];
+
+          //init quantity and update price
+          liquidity_pool_assets[pool_name][token_symbol].tokenValue += 0;
+          liquidity_pool_assets[pool_name][token_symbol].tokenPrice = +liquidityPoolsByBlock[blockNumber]?.priceUSD[token_symbol];
+
+          //initialise added, withdrawn
+          liquidity_pool_assets[pool_name][token_symbol]["added"] = 0;
+          liquidity_pool_assets[pool_name][token_symbol]["withdrawn"] = 0;
+
+          //update invested amount (after addition) and current amount
+          liquidity_pool_assets[pool_name][token_symbol]["invested"] += 0;
+          liquidity_pool_assets[pool_name][token_symbol]["current"] += 0;
+
+          console.log("-------found", blockNumber, token_symbol, { ...liquidity_pool_assets }, { ...liquidity_pool_total });
         }
+
+        newratio = liquidityPoolsByBlock[blockNumber]?.priceRatio ?? 0;
+        oldratio = liquidity_pool_total[pool_name].priceRatio;
+
+        priceratio = newratio / oldratio;
+        il = +((2 * Math.sqrt(priceratio) / (1 + priceratio)) - 1).toFixed(4);
+
+        liquidity_pool_total[pool_name].priceRatio = liquidityPoolsByBlock[blockNumber]?.priceRatio || 0;
+        liquidity_pool_total[pool_name].il = il;
+        liquidity_pool_total[pool_name].ilvalue = liquidity_pool_total[pool_name].il * liquidity_pool_total[pool_name].invested;
+
+        console.log("-------calcLP", newratio, oldratio, priceratio, {...liquidity_pool_total});
+
+        
+
         if (blocks[blockNumber]["platform"].tname.indexOf("Add") !== -1) {
-          liquidity_pool[blocks[blockNumber]['blockLabel']].push({
+
+          let objectPrint = {};
+
+          let objectPrintHolding ={};
+
+          if (liquidity_pool[pool_name].length==0) {
+            let holdingPer = liquidityPoolsByBlock[blockNumber]?.balanceLPToken / liquidityPoolsByBlock[blockNumber]?.supplyLPToken *100;
+            objectPrintHolding = {
+              holding: holdingPer,
+              il: il,
+              priceUSD : liquidityPoolsByBlock[blockNumber]?.priceUSD,
+              priceratio: priceratio,
+              invested: 0,
+              withdrawn: 0,
+              reserveUSD: liquidityPoolsByBlock[blockNumber]?.reserveUSD,
+              holdingUSD: +(liquidityPoolsByBlock[blockNumber]?.reserveUSD * holdingPer * 0.01).toFixed(4),
+              holdingLPToken: liquidityPoolsByBlock[blockNumber]?.balanceLPToken,
+              balanceLPToken: liquidityPoolsByBlock[blockNumber]?.balanceLPToken,
+              supplyLPToken: liquidityPoolsByBlock[blockNumber]?.supplyLPToken,
+              valueLPTokenUSD: +(liquidityPoolsByBlock[blockNumber]?.reserveUSD / liquidityPoolsByBlock[blockNumber]?.supplyLPToken).toFixed(4)
+            };
+          } else {
+            let temp_details = liquidity_pool[pool_name][liquidity_pool[pool_name].length - 1].details;
+
+            let newHolding = temp_details.holdingLPToken + liquidityPoolsByBlock[blockNumber]?.balanceLPToken;
+            let holdingPer = newHolding / liquidityPoolsByBlock[blockNumber]?.supplyLPToken * 100;
+
+            objectPrintHolding = {
+              holding: holdingPer,
+              il: il,
+              priceUSD : liquidityPoolsByBlock[blockNumber]?.priceUSD,
+              priceratio: priceratio,
+              invested: temp_details.invested,
+              withdrawn: temp_details.withdrawn,
+              reserveUSD: liquidityPoolsByBlock[blockNumber]?.reserveUSD,
+              holdingUSD: +(liquidityPoolsByBlock[blockNumber]?.reserveUSD * holdingPer * 0.01).toFixed(4),
+              holdingLPToken: newHolding,
+              balanceLPToken: liquidityPoolsByBlock[blockNumber]?.balanceLPToken,
+              supplyLPToken: liquidityPoolsByBlock[blockNumber]?.supplyLPToken,
+              valueLPTokenUSD: +(liquidityPoolsByBlock[blockNumber]?.reserveUSD / liquidityPoolsByBlock[blockNumber]?.supplyLPToken).toFixed(4)
+            };
+          }
+          
+
+          //token1
+          let token_symbol_0 = blocks[blockNumber].out[0].tokenSymbol;
+              //add quantity
+              liquidity_pool_assets[pool_name][token_symbol_0].tokenValue += blocks[blockNumber].out[0].tokenValue / Math.pow(10, blocks[blockNumber].out[0].tokenDecimal || 18);
+
+              //find how much added and how much is current total
+              let token0_added = +(+blocks[blockNumber].out[0].tokenValue / Math.pow(10, blocks[blockNumber].out[0].tokenDecimal || 18)
+                * +liquidityPoolsByBlock[blockNumber]?.priceUSD[token_symbol_0]).toFixed(4);
+              let token0_withdrawn=0;
+              let token0_current = +(+liquidity_pool_assets[pool_name][token_symbol_0].tokenValue
+                * +liquidityPoolsByBlock[blockNumber]?.priceUSD[token_symbol_0]).toFixed(4);
+
+              //initialise added, withdrawn
+              liquidity_pool_assets[pool_name][token_symbol_0]["added"] = token0_added;
+              liquidity_pool_assets[pool_name][token_symbol_0]["withdrawn"] = 0;
+
+              //update invested amount (after addition) and current amount
+              liquidity_pool_assets[pool_name][token_symbol_0]["invested"] += token0_added;
+              liquidity_pool_assets[pool_name][token_symbol_0]["current"] = token0_current;
+
+              let token0_invested = liquidity_pool_assets[pool_name][token_symbol_0]["invested"];
+
+              objectPrint[token_symbol_0] = {
+                addedUSD: token0_added,
+                withdrawnUSD: token0_withdrawn,
+                currentUSD: token0_current,
+                investedUSD: token0_invested,
+                tokenPrice: liquidityPoolsByBlock[blockNumber]?.priceUSD[token_symbol_0],
+                tokenValue: +liquidity_pool_assets[pool_name][token_symbol_0].tokenValue,
+                tokenDifference: 0
+              }
+
+              console.log("----@@@@@@---T0----Add"+pool_name, objectPrint);
+          
+          //token2
+          let token_symbol_1 = blocks[blockNumber].out[1].tokenSymbol;
+              //add quantity
+              liquidity_pool_assets[pool_name][token_symbol_1].tokenValue += blocks[blockNumber].out[1].tokenValue / Math.pow(10, blocks[blockNumber].out[1].tokenDecimal || 18);
+
+              //find how much added and how much is current total
+              let token1_added = +(+blocks[blockNumber].out[1].tokenValue / Math.pow(10, blocks[blockNumber].out[1].tokenDecimal || 18)
+                * +liquidityPoolsByBlock[blockNumber]?.priceUSD[token_symbol_1]).toFixed(4);
+              let token1_withdrawn=0;
+              let token1_current = +(+liquidity_pool_assets[pool_name][token_symbol_1].tokenValue
+                * +liquidityPoolsByBlock[blockNumber]?.priceUSD[token_symbol_1]).toFixed(4);
+
+              //initialise added, withdrawn
+              liquidity_pool_assets[pool_name][token_symbol_1]["added"] = token1_added;
+              liquidity_pool_assets[pool_name][token_symbol_1]["withdrawn"] = 0;
+
+              //update invested amount (after addition) and current amount
+              liquidity_pool_assets[pool_name][token_symbol_1]["invested"] += token1_added;
+              liquidity_pool_assets[pool_name][token_symbol_1]["current"] = token1_current;
+
+              let token1_invested = liquidity_pool_assets[pool_name][token_symbol_1]["invested"];
+
+              objectPrint[token_symbol_1] = {
+                addedUSD: token1_added,
+                withdrawnUSD: token1_withdrawn,
+                currentUSD: token1_current,
+                investedUSD: token1_invested,
+                tokenPrice: liquidityPoolsByBlock[blockNumber]?.priceUSD[token_symbol_1],
+                tokenValue: +liquidity_pool_assets[pool_name][token_symbol_1].tokenValue,
+                tokenDifference: 0
+              }
+              
+          objectPrintHolding.invested = token1_invested + token0_invested;
+          
+          liquidity_pool[pool_name].push({
             block: blockNumber,
+            assets: objectPrint,
+            details: objectPrintHolding,
             date: moment(blocks[blockNumber].transactions[0].timeStamp * 1000).format("YYYY-MM-DD"),
             type: "Add",
-            value: blocks[blockNumber].in[0].tokenValue,
+            value: blocks[blockNumber].out[0].tokenValue,
+            tokensIn: blocks[blockNumber].in,
+            tokensOut: blocks[blockNumber].out,
+            tokenPrices: liquidityPoolsByBlock[blockNumber]?.priceUSD
           });
         } else if (blocks[blockNumber]["platform"].tname.indexOf("Remove") !== -1) {
-          liquidity_pool[blocks[blockNumber]['blockLabel']].push({
+
+          let objectPrint = {};
+
+          let temp_details = liquidity_pool[pool_name][liquidity_pool[pool_name].length - 1].details;
+
+          let newHolding = temp_details.holdingLPToken - liquidityPoolsByBlock[blockNumber]?.balanceLPToken;
+          if (liquidityPoolsByBlock[blockNumber]?.balanceLPToken==0) {
+            newHolding=0;
+          }
+          let holdingPer = newHolding / liquidityPoolsByBlock[blockNumber]?.supplyLPToken * 100;
+
+          let objectPrintHolding = {
+            holding: holdingPer,
+            il: il,
+            priceUSD : liquidityPoolsByBlock[blockNumber]?.priceUSD,
+            priceratio: priceratio,
+            invested: temp_details.invested,
+            withdrawn: temp_details.withdrawn,
+            reserveUSD: liquidityPoolsByBlock[blockNumber]?.reserveUSD,
+            holdingUSD: +(liquidityPoolsByBlock[blockNumber]?.reserveUSD * holdingPer * 0.01).toFixed(4),
+            holdingLPToken: newHolding,
+            balanceLPToken: liquidityPoolsByBlock[blockNumber]?.balanceLPToken,
+            supplyLPToken: liquidityPoolsByBlock[blockNumber]?.supplyLPToken,
+            valueLPTokenUSD: +(liquidityPoolsByBlock[blockNumber]?.reserveUSD / liquidityPoolsByBlock[blockNumber]?.supplyLPToken).toFixed(4)
+          };
+
+          //token 2
+          if (blocks[blockNumber].in[1] == undefined) {
+            console.log("------Undefined pair", liquidity_pool_assets[pool_name], blocks[blockNumber], blocks[blockNumber].in[0].tokenSymbol);
+
+            //handle issue
+            blocks[blockNumber].in[1] = {
+              "address": "0xa10d2e55f0f87756d6f99960176120c512eb3e15",
+              "tokenSymbol": "WETH",
+              "tokenName": "Wrapped Eth Token",
+              "tokenDecimal": "18",
+              "tokenValue": "0"
+            }
+          }
+
+          
+
+          //token 1
+          let token_symbol_0 = blocks[blockNumber].in[0].tokenSymbol;
+          let token_symbol_1 = blocks[blockNumber].in[1].tokenSymbol;
+          let token0_withdrawn = 0;
+          let token1_withdrawn = 0;
+          let token0_current = 0;
+          let token1_current = 0;
+
+          let token0_added = 0;
+          let token1_added = 0;
+
+          let token0_difference_value = (blocks[blockNumber].in[0].tokenValue / Math.pow(10, blocks[blockNumber].in[0].tokenDecimal)) - liquidity_pool_assets[pool_name][token_symbol_0].tokenValue;
+          let token1_difference_value = (blocks[blockNumber].in[1].tokenValue / Math.pow(10, blocks[blockNumber].in[1].tokenDecimal)) - liquidity_pool_assets[pool_name][token_symbol_1].tokenValue;
+
+          let token0_invested_value = liquidity_pool_assets[pool_name][token_symbol_0].tokenValue;
+          let token1_invested_value = liquidity_pool_assets[pool_name][token_symbol_1].tokenValue;
+
+          let token0_withdrawn_value = (blocks[blockNumber].in[0].tokenValue) / Math.pow(10, blocks[blockNumber].in[0].tokenDecimal);
+          let token1_withdrawn_value = (blocks[blockNumber].in[1].tokenValue) / Math.pow(10, blocks[blockNumber].in[1].tokenDecimal);
+
+          if (objectPrintHolding.holding == 0) {
+            liquidity_pool_assets[pool_name][token_symbol_0].tokenValue = blocks[blockNumber].in[0].tokenValue;
+            liquidity_pool_assets[pool_name][token_symbol_1].tokenValue = blocks[blockNumber].in[1].tokenValue;
+            token0_withdrawn = token0_withdrawn_value * liquidityPoolsByBlock[blockNumber].priceUSD[token_symbol_0];
+            token1_withdrawn = token1_withdrawn_value * liquidityPoolsByBlock[blockNumber].priceUSD[token_symbol_1];
+            token0_current = 0;
+            token1_current = 0;
+
+            objectPrintHolding.withdrawn = token0_withdrawn + token1_withdrawn;
+          } else {
+            liquidity_pool_assets[pool_name][token_symbol_0].tokenValue -= blocks[blockNumber].in[0].tokenValue / Math.pow(10, blocks[blockNumber].in[0].tokenDecimal || 18);
+            liquidity_pool_assets[pool_name][token_symbol_1].tokenValue -= (blocks[blockNumber]?.in[1].tokenValue || 0) / Math.pow(10, blocks[blockNumber].in[1].tokenDecimal || 18);
+            token0_withdrawn = +(+blocks[blockNumber].in[0].tokenValue / Math.pow(10, blocks[blockNumber].in[0].tokenDecimal || 18)
+              * +liquidity_pool_assets[pool_name][token_symbol_0]["invested"] / +liquidity_pool_assets[pool_name][token_symbol_0].tokenValue).toFixed(4);
+            token1_withdrawn = +(+blocks[blockNumber].in[1].tokenValue / Math.pow(10, blocks[blockNumber].in[1].tokenDecimal || 18)
+              * +liquidity_pool_assets[pool_name][token_symbol_1]["invested"] / +liquidity_pool_assets[pool_name][token_symbol_1].tokenValue).toFixed(4);
+            liquidity_pool_assets[pool_name][token_symbol_0]["invested"] -= token0_withdrawn;
+            liquidity_pool_assets[pool_name][token_symbol_1]["invested"] -= token1_withdrawn;
+
+            token0_current = +(+liquidity_pool_assets[pool_name][token_symbol_0].tokenValue
+              * +liquidityPoolsByBlock[blockNumber]?.priceUSD[token_symbol_0]).toFixed(4);
+            token1_current = +(+liquidity_pool_assets[pool_name][token_symbol_1].tokenValue
+              * +liquidityPoolsByBlock[blockNumber]?.priceUSD[token_symbol_1]).toFixed(4);
+          }
+
+              //initialise added, withdrawn
+              liquidity_pool_assets[pool_name][token_symbol_0]["added"] = 0;
+              liquidity_pool_assets[pool_name][token_symbol_0]["withdrawn"] = token0_withdrawn;
+
+              //update invested amount (after deduction) and current amount
+              liquidity_pool_assets[pool_name][token_symbol_0]["current"] = token0_current;
+
+              let token0_invested = liquidity_pool_assets[pool_name][token_symbol_0]["invested"];
+
+              objectPrint[token_symbol_0] = {
+                addedUSD: token0_added,
+                withdrawnUSD: token0_withdrawn,
+                currentUSD: token0_current,
+                investedUSD: token0_invested,
+                tokenPrice: liquidityPoolsByBlock[blockNumber]?.priceUSD[token_symbol_0],
+                tokenValue: +liquidity_pool_assets[pool_name][token_symbol_0].tokenValue,
+                tokenDifference: token0_difference_value,
+                tokenInvested: token0_invested_value,
+                tokenWithdrawn: token0_withdrawn_value
+              }
+
+
+              //initialise added, withdrawn
+              liquidity_pool_assets[pool_name][token_symbol_1]["added"] = 0;
+              liquidity_pool_assets[pool_name][token_symbol_1]["withdrawn"] = token1_withdrawn;
+
+              //update invested amount (after deduction) and current amount
+              liquidity_pool_assets[pool_name][token_symbol_1]["current"] = token1_current;
+
+              let token1_invested=liquidity_pool_assets[pool_name][token_symbol_1]["invested"]
+
+              objectPrint[token_symbol_1] = {
+                addedUSD: token1_added,
+                withdrawnUSD: token1_withdrawn,
+                currentUSD: token1_current,
+                investedUSD: token1_invested,
+                tokenPrice: liquidityPoolsByBlock[blockNumber]?.priceUSD[token_symbol_1],
+                tokenValue: +liquidity_pool_assets[pool_name][token_symbol_1].tokenValue,
+                tokenDifference: token1_difference_value,
+                tokenInvested: token1_invested_value,
+                tokenWithdrawn: token1_withdrawn_value
+              }
+
+
+          objectPrintHolding.invested = token1_invested + token0_invested;
+          
+
+
+          liquidity_pool[pool_name].push({
             block: blockNumber,
+            assets: objectPrint,
+            details: objectPrintHolding,
             date: moment(blocks[blockNumber].transactions[0].timeStamp * 1000).format("YYYY-MM-DD"),
             type: "Remove",
             value: blocks[blockNumber].out[0].tokenValue,
+            tokensIn: blocks[blockNumber].in,
+            tokensOut: blocks[blockNumber].out,
+            tokenPrices: liquidityPoolsByBlock[blockNumber]?.priceUSD
           });
         } else if (blocks[blockNumber]["platform"].tname.indexOf("Stake Again") !== -1) {
-          liquidity_pool[blocks[blockNumber]['blockLabel']].push({
+
+          let temp_assets = liquidity_pool[pool_name][liquidity_pool[pool_name].length - 1].assets;
+          let temp_assets_tokens = Object.keys(temp_assets);
+
+          let objectPrint = {};
+
+          let temp_details = liquidity_pool[pool_name][liquidity_pool[pool_name].length - 1].details;
+          let holdingPer = temp_details.holdingLPToken / liquidityPoolsByBlock[blockNumber]?.supplyLPToken * 100;
+
+          let objectPrintHolding = {
+            holding: holdingPer,
+            il: il,
+            priceUSD : liquidityPoolsByBlock[blockNumber]?.priceUSD,
+            priceratio: priceratio,
+            invested: temp_details.invested,
+            withdrawn: temp_details.withdrawn,
+            reserveUSD: liquidityPoolsByBlock[blockNumber]?.reserveUSD,
+            holdingUSD: +(liquidityPoolsByBlock[blockNumber]?.reserveUSD * holdingPer * 0.01).toFixed(4),
+            holdingLPToken: temp_details.holdingLPToken,
+            balanceLPToken: liquidityPoolsByBlock[blockNumber]?.balanceLPToken,
+            supplyLPToken: liquidityPoolsByBlock[blockNumber]?.supplyLPToken,
+            valueLPTokenUSD: +(liquidityPoolsByBlock[blockNumber]?.reserveUSD / liquidityPoolsByBlock[blockNumber]?.supplyLPToken).toFixed(4)
+          };  
+
+          objectPrint[temp_assets_tokens[0]] = {
+            ...temp_assets[temp_assets_tokens[0]],
+            addedUSD: 0,
+            withdrawnUSD: 0,
+            currentUSD: temp_assets[temp_assets_tokens[0]].tokenValue * liquidityPoolsByBlock[blockNumber]?.priceUSD[temp_assets_tokens[0]],
+            tokenPrice: liquidityPoolsByBlock[blockNumber]?.priceUSD[temp_assets_tokens[0]]
+          }
+
+          objectPrint[temp_assets_tokens[1]] = {
+            ...temp_assets[temp_assets_tokens[1]],
+            addedUSD: 0,
+            withdrawnUSD: 0,
+            currentUSD: temp_assets[temp_assets_tokens[1]].tokenValue * liquidityPoolsByBlock[blockNumber]?.priceUSD[temp_assets_tokens[1]],
+            tokenPrice: liquidityPoolsByBlock[blockNumber]?.priceUSD[temp_assets_tokens[1]]
+          }
+
+          liquidity_pool[pool_name].push({
             block: blockNumber,
+            assets: objectPrint,
+            details: objectPrintHolding,
             date: moment(blocks[blockNumber].transactions[0].timeStamp * 1000).format("YYYY-MM-DD"),
             type: "Stake Again",
             value: blocks[blockNumber].out[0].tokenValue,
-            reward: { tokenAddress:blocks[blockNumber].transactions[0].contractAddress, value:blocks[blockNumber].transactions[0].value}
+            tokensIn: blocks[blockNumber].in,
+            tokensOut: blocks[blockNumber].out,
+            tokenPrices: liquidityPoolsByBlock[blockNumber]?.priceUSD,
+            reward: {
+              ...uniqueTokens[(blocks[blockNumber].transactions[0].contractAddress).toLowerCase()],
+              tokenValue: +blocks[blockNumber].transactions[0].value,
+              value: +blocks[blockNumber].transactions[0].value
+            }
           });
         } else if (blocks[blockNumber]["platform"].tname.indexOf("Stake") !== -1) {
-          liquidity_pool[blocks[blockNumber]['blockLabel']].push({
+
+          let temp_assets = liquidity_pool[pool_name][liquidity_pool[pool_name].length - 1].assets;
+          let temp_assets_tokens = Object.keys(temp_assets);
+
+          let objectPrint = {};
+
+          let temp_details = liquidity_pool[pool_name][liquidity_pool[pool_name].length - 1].details;
+          let holdingPer = temp_details.holdingLPToken / liquidityPoolsByBlock[blockNumber]?.supplyLPToken * 100;
+
+          let objectPrintHolding = {
+            holding: holdingPer,
+            il: il,
+            priceUSD : liquidityPoolsByBlock[blockNumber]?.priceUSD,
+            priceratio: priceratio,
+            invested: temp_details.invested,
+            withdrawn: temp_details.withdrawn,
+            reserveUSD: liquidityPoolsByBlock[blockNumber]?.reserveUSD,
+            holdingUSD: +(liquidityPoolsByBlock[blockNumber]?.reserveUSD * holdingPer * 0.01).toFixed(4),
+            holdingLPToken: temp_details.holdingLPToken,
+            balanceLPToken: liquidityPoolsByBlock[blockNumber]?.balanceLPToken,
+            supplyLPToken: liquidityPoolsByBlock[blockNumber]?.supplyLPToken,
+            valueLPTokenUSD: +(liquidityPoolsByBlock[blockNumber]?.reserveUSD / liquidityPoolsByBlock[blockNumber]?.supplyLPToken).toFixed(4)
+          };  
+
+          objectPrint[temp_assets_tokens[0]] = {
+            ...temp_assets[temp_assets_tokens[0]],
+            addedUSD: 0,
+            withdrawnUSD: 0,
+            currentUSD: temp_assets[temp_assets_tokens[0]].tokenValue * liquidityPoolsByBlock[blockNumber]?.priceUSD[temp_assets_tokens[0]],
+            tokenPrice: liquidityPoolsByBlock[blockNumber]?.priceUSD[temp_assets_tokens[0]]
+          }
+
+          objectPrint[temp_assets_tokens[1]] = {
+            ...temp_assets[temp_assets_tokens[1]],
+            addedUSD: 0,
+            withdrawnUSD: 0,
+            currentUSD: temp_assets[temp_assets_tokens[1]].tokenValue * liquidityPoolsByBlock[blockNumber]?.priceUSD[temp_assets_tokens[1]],
+            tokenPrice: liquidityPoolsByBlock[blockNumber]?.priceUSD[temp_assets_tokens[1]]
+          }
+          
+          liquidity_pool[pool_name].push({
             block: blockNumber,
+            assets: objectPrint,
+            details: objectPrintHolding,
             date: moment(blocks[blockNumber].transactions[0].timeStamp * 1000).format("YYYY-MM-DD"),
             type: "Stake",
-            value: blocks[blockNumber].out[0].tokenValue
+            value: blocks[blockNumber].out[0].tokenValue,
+            tokensIn: blocks[blockNumber].in,
+            tokensOut: blocks[blockNumber].out,
+            tokenPrices: liquidityPoolsByBlock[blockNumber]?.priceUSD
           });
         } else if (blocks[blockNumber]["platform"].tname.indexOf("Unstake") !== -1) {
-          liquidity_pool[blocks[blockNumber]['blockLabel']].push({
+
+          let temp_assets = liquidity_pool[pool_name][liquidity_pool[pool_name].length - 1].assets;
+          
+          let temp_assets_tokens = Object.keys(temp_assets);
+
+          let objectPrint = {};
+
+          let temp_details = liquidity_pool[pool_name][liquidity_pool[pool_name].length - 1].details;
+          let holdingPer = temp_details.holdingLPToken / liquidityPoolsByBlock[blockNumber]?.supplyLPToken * 100;
+
+          let objectPrintHolding = {
+            holding: holdingPer,
+            il: il,
+            priceUSD : liquidityPoolsByBlock[blockNumber]?.priceUSD,
+            priceratio: priceratio,
+            invested: temp_details.invested,
+            withdrawn: temp_details.withdrawn,
+            reserveUSD: liquidityPoolsByBlock[blockNumber]?.reserveUSD,
+            holdingUSD: +(liquidityPoolsByBlock[blockNumber]?.reserveUSD * holdingPer * 0.01).toFixed(4),
+            holdingLPToken: temp_details.holdingLPToken,
+            balanceLPToken: liquidityPoolsByBlock[blockNumber]?.balanceLPToken,
+            supplyLPToken: liquidityPoolsByBlock[blockNumber]?.supplyLPToken,
+            valueLPTokenUSD: +(liquidityPoolsByBlock[blockNumber]?.reserveUSD / liquidityPoolsByBlock[blockNumber]?.supplyLPToken).toFixed(4)
+          };  
+
+          objectPrint[temp_assets_tokens[0]] = {
+            ...temp_assets[temp_assets_tokens[0]],
+            addedUSD: 0,
+            withdrawnUSD: 0,
+            currentUSD: temp_assets[temp_assets_tokens[0]].tokenValue * liquidityPoolsByBlock[blockNumber]?.priceUSD[temp_assets_tokens[0]],
+            tokenPrice: liquidityPoolsByBlock[blockNumber]?.priceUSD[temp_assets_tokens[0]]
+          }
+
+          objectPrint[temp_assets_tokens[1]] = {
+            ...temp_assets[temp_assets_tokens[1]],
+            addedUSD: 0,
+            withdrawnUSD: 0,
+            currentUSD: temp_assets[temp_assets_tokens[1]].tokenValue * liquidityPoolsByBlock[blockNumber]?.priceUSD[temp_assets_tokens[1]],
+            tokenPrice: liquidityPoolsByBlock[blockNumber]?.priceUSD[temp_assets_tokens[1]]
+          }
+    
+          liquidity_pool[pool_name].push({
             block: blockNumber,
+            assets: objectPrint,
+            details: objectPrintHolding,
             date: moment(blocks[blockNumber].transactions[0].timeStamp * 1000).format("YYYY-MM-DD"),
             type: "Unstake",
             value: blocks[blockNumber].in[0].tokenValue,
-            reward: { tokenAddress:blocks[blockNumber].transactions[0].contractAddress, value: blocks[blockNumber].transactions[0].value }
+            tokensIn: blocks[blockNumber].in,
+            tokensOut: blocks[blockNumber].out,
+            tokenPrices: liquidityPoolsByBlock[blockNumber]?.priceUSD,
+            reward: { 
+              ...uniqueTokens[(blocks[blockNumber].transactions[0].contractAddress).toLowerCase()],
+              tokenValue: +blocks[blockNumber].transactions[0].value,
+              value: +blocks[blockNumber].transactions[0].value 
+            }
           });
         } else {
 
@@ -682,7 +1200,7 @@ class App extends Component {
           ...this.state.address,
           etheriumTransactions: result.result.slice(0, MAX_COUNT),
           etheriumBlocks: blocks,
-          etheriumliquidityPools: this.handleLiquidityPools(blocks),
+          etheriumliquidityPools: this.handleLiquidityPools(blocks, address.etheriumLiquidityPoolsByBlock),
           etheriumInvestments: investments["etherium"],
           etheriumGasFees: gasFees["etherium"]
         }
@@ -740,7 +1258,7 @@ class App extends Component {
           ...this.state.address,
           binanceTransactions: result.result.slice(0, MAX_COUNT),
           binanceBlocks: blocks,
-          binanceliquidityPools: this.handleLiquidityPools(blocks),
+          binanceliquidityPools: this.handleLiquidityPools(blocks, address.binanceLiquidityPoolsByBlock),
           binanceInvestments: investments["binance"],
           binanceGasFees: gasFees["binance"]
         }
@@ -798,7 +1316,7 @@ class App extends Component {
           ...this.state.address,
           polygonTransactions: result.result.slice(0, MAX_COUNT),
           polygonBlocks: blocks,
-          polygonliquidityPools: this.handleLiquidityPools(blocks),
+          polygonliquidityPools: this.handleLiquidityPools(blocks, address.polygonLiquidityPoolsByBlock),
           polygonInvestments: investments["polygon"],
           polygonGasFees: gasFees["polygon"]
         }
