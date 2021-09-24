@@ -444,14 +444,15 @@ class App extends Component {
     return blocks;
   }
 
-  handleLiquidityPools = (blocks, liquidityPoolsByBlock) => {
+  handleLiquidityPools = (blocks, liquidityPoolsByBlock, chain) => {
 
     var address = this.state.address;
     
     let liquidity_pool = {};
     let pool_name = "", token_symbol = "";
     let liquidity_pool_assets = { };
-    let liquidity_pool_total = { };
+    let liquidity_pool_gasfees = {};
+    let liquidity_pool_rewards = {};
 
 
     let newratio = 1, oldratio = 1, priceratio=1, il=0;
@@ -471,7 +472,8 @@ class App extends Component {
           liquidity_pool[pool_name] = [];
 
           liquidity_pool_assets[pool_name] = {};
-          liquidity_pool_total[pool_name] = {};
+          liquidity_pool_gasfees[pool_name] = 0;
+          liquidity_pool_rewards[pool_name] = {};
           
 
           token_symbol = blocks[blockNumber].out[0].tokenSymbol;
@@ -496,12 +498,6 @@ class App extends Component {
           }
           // console.log("--------PoolToken---Init2----" + token_symbol, 1, blockNumber, { ...liquidity_pool_assets[pool_name][token_symbol] });
 
-          liquidity_pool_total[pool_name] = {
-            priceRatio: liquidityPoolsByBlock[blockNumber]?.priceRatio || 1,
-            rewards: 0,fees: 0,
-            il: 0,
-            ilvalue: 0
-          }
 
         } else {
           token_symbol = Object.keys(liquidity_pool_assets[pool_name])[0];
@@ -518,8 +514,6 @@ class App extends Component {
           liquidity_pool_assets[pool_name][token_symbol]["invested"] += 0;
           liquidity_pool_assets[pool_name][token_symbol]["current"] += 0;
 
-          console.log("-------found", blockNumber, token_symbol, { ...liquidity_pool_assets }, { ...liquidity_pool_total });
-
           token_symbol = Object.keys(liquidity_pool_assets[pool_name])[1];
 
           //init quantity and update price
@@ -534,22 +528,9 @@ class App extends Component {
           liquidity_pool_assets[pool_name][token_symbol]["invested"] += 0;
           liquidity_pool_assets[pool_name][token_symbol]["current"] += 0;
 
-          console.log("-------found", blockNumber, token_symbol, { ...liquidity_pool_assets }, { ...liquidity_pool_total });
         }
 
-        newratio = liquidityPoolsByBlock[blockNumber]?.priceRatio ?? 0;
-        oldratio = liquidity_pool_total[pool_name].priceRatio;
-
-        priceratio = newratio / oldratio;
-        il = +((2 * Math.sqrt(priceratio) / (1 + priceratio)) - 1).toFixed(4);
-
-        liquidity_pool_total[pool_name].priceRatio = liquidityPoolsByBlock[blockNumber]?.priceRatio || 0;
-        liquidity_pool_total[pool_name].il = il;
-        liquidity_pool_total[pool_name].ilvalue = liquidity_pool_total[pool_name].il * liquidity_pool_total[pool_name].invested;
-
-        console.log("-------calcLP", newratio, oldratio, priceratio, {...liquidity_pool_total});
-
-        
+        liquidity_pool_gasfees[pool_name] += parseFloat(blocks[blockNumber].gasFee);
 
         if (blocks[blockNumber]["platform"].tname.indexOf("Add") !== -1) {
 
@@ -561,9 +542,10 @@ class App extends Component {
             let holdingPer = liquidityPoolsByBlock[blockNumber]?.balanceLPToken / liquidityPoolsByBlock[blockNumber]?.supplyLPToken *100;
             objectPrintHolding = {
               holding: holdingPer,
-
+              chain:chain,
               poolname: liquidityPoolsByBlock[blockNumber]?.poolname,
-              priceratio: priceratio,
+              gasFee: parseFloat(blocks[blockNumber].gasFee),
+              gasFeeCumu:liquidity_pool_gasfees[pool_name],
               invested: 0,
               withdrawn: 0,
               reserveUSD: liquidityPoolsByBlock[blockNumber]?.reserveUSD,
@@ -581,9 +563,10 @@ class App extends Component {
 
             objectPrintHolding = {
               holding: holdingPer,
-
+              chain:chain,
               poolname: liquidityPoolsByBlock[blockNumber]?.poolname,
-              priceratio: priceratio,
+              gasFee: parseFloat(blocks[blockNumber].gasFee),
+              gasFeeCumu:liquidity_pool_gasfees[pool_name],
               invested: temp_details.invested,
               withdrawn: temp_details.withdrawn,
               reserveUSD: liquidityPoolsByBlock[blockNumber]?.reserveUSD,
@@ -704,7 +687,8 @@ class App extends Component {
             value: blocks[blockNumber].out[0].tokenValue,
             tokensIn: blocks[blockNumber].in,
             tokensOut: blocks[blockNumber].out,
-            tokenPrices: liquidityPoolsByBlock[blockNumber]?.priceUSD
+            tokenPrices: liquidityPoolsByBlock[blockNumber]?.priceUSD,
+            reward: liquidity_pool_rewards[pool_name]
           });
 
           
@@ -723,9 +707,11 @@ class App extends Component {
           let holdingPer = newHolding / liquidityPoolsByBlock[blockNumber]?.supplyLPToken * 100;
 
           let objectPrintHolding = {
+            chain:chain,
             holding: holdingPer,
             poolname: liquidityPoolsByBlock[blockNumber]?.poolname,
-            priceratio: priceratio,
+            gasFee: parseFloat(blocks[blockNumber].gasFee),
+            gasFeeCumu:liquidity_pool_gasfees[pool_name],
             invested: temp_details.invested,
             withdrawn: temp_details.withdrawn,
             reserveUSD: liquidityPoolsByBlock[blockNumber]?.reserveUSD,
@@ -879,7 +865,8 @@ class App extends Component {
             value: blocks[blockNumber].out[0].tokenValue,
             tokensIn: blocks[blockNumber].in,
             tokensOut: blocks[blockNumber].out,
-            tokenPrices: liquidityPoolsByBlock[blockNumber]?.priceUSD
+            tokenPrices: liquidityPoolsByBlock[blockNumber]?.priceUSD,
+            reward: liquidity_pool_rewards[pool_name]
           });
         } else if (blocks[blockNumber]["platform"].tname.indexOf("Stake Again") !== -1) {
 
@@ -892,9 +879,11 @@ class App extends Component {
           let holdingPer = temp_details.holdingLPToken / liquidityPoolsByBlock[blockNumber]?.supplyLPToken * 100;
 
           let objectPrintHolding = {
+            chain:chain,
             holding: holdingPer,
             poolname: liquidityPoolsByBlock[blockNumber]?.poolname,
-            priceratio: priceratio,
+            gasFee: parseFloat(blocks[blockNumber].gasFee),
+            gasFeeCumu:liquidity_pool_gasfees[pool_name],
             invested: temp_details.invested,
             withdrawn: temp_details.withdrawn,
             reserveUSD: liquidityPoolsByBlock[blockNumber]?.reserveUSD,
@@ -950,6 +939,17 @@ class App extends Component {
           objectPrintLPHolding.ilUSD = objectPrintLPHolding.totalUSD - objectPrintLPHolding.totaltUSD;
           objectPrintLPHolding.ilPer = objectPrintLPHolding.ilUSD / objectPrintLPHolding.totaltUSD * 100;
 
+          if (Object.keys(liquidity_pool_rewards[pool_name]) == 0) {
+            let rewardtoken = uniqueTokens[(blocks[blockNumber].transactions[0].contractAddress).toLowerCase()]
+            liquidity_pool_rewards[pool_name] = {
+              ...rewardtoken,
+              tokenValue: +blocks[blockNumber].transactions[0].value / Math.pow(10, rewardtoken.decimal),
+              value: +blocks[blockNumber].transactions[0].value
+            }
+          } else {
+            liquidity_pool_rewards[pool_name]["tokenValue"] += blocks[blockNumber].transactions[0].value / Math.pow(10, liquidity_pool_rewards[pool_name].decimal);
+          }
+
           liquidity_pool[pool_name].push({
             block: blockNumber,
             assets: objectPrint,
@@ -961,11 +961,7 @@ class App extends Component {
             tokensIn: blocks[blockNumber].in,
             tokensOut: blocks[blockNumber].out,
             tokenPrices: liquidityPoolsByBlock[blockNumber]?.priceUSD,
-            reward: {
-              ...uniqueTokens[(blocks[blockNumber].transactions[0].contractAddress).toLowerCase()],
-              tokenValue: +blocks[blockNumber].transactions[0].value,
-              value: +blocks[blockNumber].transactions[0].value
-            }
+            reward: liquidity_pool_rewards[pool_name]
           });
         } else if (blocks[blockNumber]["platform"].tname.indexOf("Stake") !== -1) {
 
@@ -978,9 +974,11 @@ class App extends Component {
           let holdingPer = temp_details.holdingLPToken / liquidityPoolsByBlock[blockNumber]?.supplyLPToken * 100;
 
           let objectPrintHolding = {
+            chain:chain,
             holding: holdingPer,
             poolname: liquidityPoolsByBlock[blockNumber]?.poolname,
-            priceratio: priceratio,
+            gasFee: parseFloat(blocks[blockNumber].gasFee),
+            gasFeeCumu:liquidity_pool_gasfees[pool_name],
             invested: temp_details.invested,
             withdrawn: temp_details.withdrawn,
             reserveUSD: liquidityPoolsByBlock[blockNumber]?.reserveUSD,
@@ -1046,7 +1044,8 @@ class App extends Component {
             value: blocks[blockNumber].out[0].tokenValue,
             tokensIn: blocks[blockNumber].in,
             tokensOut: blocks[blockNumber].out,
-            tokenPrices: liquidityPoolsByBlock[blockNumber]?.priceUSD
+            tokenPrices: liquidityPoolsByBlock[blockNumber]?.priceUSD,
+            reward: liquidity_pool_rewards[pool_name]
           });
         } else if (blocks[blockNumber]["platform"].tname.indexOf("Unstake") !== -1) {
 
@@ -1060,9 +1059,11 @@ class App extends Component {
           let holdingPer = temp_details.holdingLPToken / liquidityPoolsByBlock[blockNumber]?.supplyLPToken * 100;
 
           let objectPrintHolding = {
+            chain:chain,
             holding: holdingPer,
             poolname: liquidityPoolsByBlock[blockNumber]?.poolname,
-            priceratio: priceratio,
+            gasFee: parseFloat(blocks[blockNumber].gasFee),
+            gasFeeCumu:liquidity_pool_gasfees[pool_name],
             invested: temp_details.invested,
             withdrawn: temp_details.withdrawn,
             reserveUSD: liquidityPoolsByBlock[blockNumber]?.reserveUSD,
@@ -1117,6 +1118,17 @@ class App extends Component {
 
           objectPrintLPHolding.ilUSD = objectPrintLPHolding.totalUSD - objectPrintLPHolding.totaltUSD;
           objectPrintLPHolding.ilPer = objectPrintLPHolding.ilUSD / objectPrintLPHolding.totaltUSD * 100;
+
+          if (Object.keys(liquidity_pool_rewards[pool_name]) == 0) {
+            let rewardtoken = uniqueTokens[(blocks[blockNumber].transactions[0].contractAddress).toLowerCase()]
+            liquidity_pool_rewards[pool_name] = {
+              ...rewardtoken,
+              tokenValue: +blocks[blockNumber].transactions[0].value / Math.pow(10, rewardtoken.decimal),
+              value: +blocks[blockNumber].transactions[0].value
+            }
+          } else {
+            liquidity_pool_rewards[pool_name]["tokenValue"] += blocks[blockNumber].transactions[0].value / Math.pow(10, liquidity_pool_rewards[pool_name].decimal);
+          }
     
           liquidity_pool[pool_name].push({
             block: blockNumber,
@@ -1129,11 +1141,7 @@ class App extends Component {
             tokensIn: blocks[blockNumber].in,
             tokensOut: blocks[blockNumber].out,
             tokenPrices: liquidityPoolsByBlock[blockNumber]?.priceUSD,
-            reward: { 
-              ...uniqueTokens[(blocks[blockNumber].transactions[0].contractAddress).toLowerCase()],
-              tokenValue: +blocks[blockNumber].transactions[0].value,
-              value: +blocks[blockNumber].transactions[0].value 
-            }
+            reward: liquidity_pool_rewards[pool_name]
           });
         } else {
 
@@ -1346,7 +1354,7 @@ class App extends Component {
           ...this.state.address,
           etheriumTransactions: result.result.slice(0, MAX_COUNT),
           etheriumBlocks: blocks,
-          etheriumliquidityPools: this.handleLiquidityPools(blocks, address.etheriumLiquidityPoolsByBlock),
+          etheriumliquidityPools: this.handleLiquidityPools(blocks, address.etheriumLiquidityPoolsByBlock, "etherium"),
           etheriumInvestments: investments["etherium"],
           etheriumGasFees: gasFees["etherium"]
         }
@@ -1404,7 +1412,7 @@ class App extends Component {
           ...this.state.address,
           binanceTransactions: result.result.slice(0, MAX_COUNT),
           binanceBlocks: blocks,
-          binanceliquidityPools: this.handleLiquidityPools(blocks, address.binanceLiquidityPoolsByBlock),
+          binanceliquidityPools: this.handleLiquidityPools(blocks, address.binanceLiquidityPoolsByBlock, "binance"),
           binanceInvestments: investments["binance"],
           binanceGasFees: gasFees["binance"]
         }
@@ -1462,7 +1470,7 @@ class App extends Component {
           ...this.state.address,
           polygonTransactions: result.result.slice(0, MAX_COUNT),
           polygonBlocks: blocks,
-          polygonliquidityPools: this.handleLiquidityPools(blocks, address.polygonLiquidityPoolsByBlock),
+          polygonliquidityPools: this.handleLiquidityPools(blocks, address.polygonLiquidityPoolsByBlock, "polygon"),
           polygonInvestments: investments["polygon"],
           polygonGasFees: gasFees["polygon"]
         }
