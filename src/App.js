@@ -28,17 +28,17 @@ var polygonLiquidityPoolsByBlock = {};
 
 var addr = '', uniqueTokens = {}, uniqueAddress = {};
 var liquidityPools ={
-  etherium: { },
+  ethereum: { },
   binance: { },
   polygon: { }
 };
 var gasFees = {
-  etherium: 0,
+  ethereum: 0,
   binance: 0,
   polygon: 0
 };
 var investments = {
-  etherium: [],
+  ethereum: [],
   binance: [],
   polygon: []
 };
@@ -724,7 +724,10 @@ class App extends Component {
 
           //token 2
           if (blocks[blockNumber].in[1] == undefined) {
-            console.log("------Undefined pair", liquidity_pool_assets[pool_name], blocks[blockNumber], blocks[blockNumber].in[0].tokenSymbol);
+            console.log("------Undefined pair", blockNumber, liquidity_pool_assets[pool_name], blocks[blockNumber], blocks[blockNumber].in[0].tokenSymbol);
+
+            let price = liquidityPoolsByBlock[blockNumber].priceUSD["WETH"];
+            let priceinvested = temp_details.invested/2;
 
             //handle issue
             blocks[blockNumber].in[1] = {
@@ -732,7 +735,7 @@ class App extends Component {
               "tokenSymbol": "WETH",
               "tokenName": "Wrapped Eth Token",
               "tokenDecimal": "18",
-              "tokenValue": "0"
+              "tokenValue": "" + parseInt(priceinvested / price * Math.pow(10,18))
             }
           }
 
@@ -1336,8 +1339,8 @@ class App extends Component {
         (transaction.value == "0")
           ? blocks[transaction["blockNumber"]].approve.push({ "type": "Approve Transaction", "address": transaction.to, "name": (uniqueAddress[transaction.to] != undefined) ? uniqueAddress[transaction.to].name : "Unknown Approval"  })
           : (transaction.to == address.address)
-            ? blocks[transaction["blockNumber"]].in.push({ address: address.address, "tokenSymbol": "Eth", "tokenName": "Etherium", "tokenDecimal": "18", "tokenValue": transaction.value })
-            : blocks[transaction["blockNumber"]].out.push({ address: address.address, "tokenSymbol": "Eth", "tokenName": "Etherium", "tokenDecimal": "18", "tokenValue": transaction.value })
+            ? blocks[transaction["blockNumber"]].in.push({ address: address.address, "tokenSymbol": "Eth", "tokenName": "Ethereum", "tokenDecimal": "18", "tokenValue": transaction.value })
+            : blocks[transaction["blockNumber"]].out.push({ address: address.address, "tokenSymbol": "Eth", "tokenName": "Ethereum", "tokenDecimal": "18", "tokenValue": transaction.value })
 
         blocks[transaction["blockNumber"]]['type'] = (blocks[transaction["blockNumber"]].type == 'Normal') ? (blocks[transaction["blockNumber"]].in.length > 0) ? 'Wallet Credit' : 'Wallet Debit' : 'Defi Dex';
         // console.log("uniqueAddress", uniqueAddress);
@@ -1348,15 +1351,15 @@ class App extends Component {
       localStorage.setItem('etheriumUniqueAddress', JSON.stringify(uniqueAddress))
       // console.log('etheriumTransactions', transactions);
 
-      blocks = this.handleLabelling(blocks,"etherium")
+      blocks = this.handleLabelling(blocks,"ethereum")
       this.setState({
         address: {
           ...this.state.address,
           etheriumTransactions: result.result.slice(0, MAX_COUNT),
           etheriumBlocks: blocks,
-          etheriumliquidityPools: this.handleLiquidityPools(blocks, address.etheriumLiquidityPoolsByBlock, "etherium"),
-          etheriumInvestments: investments["etherium"],
-          etheriumGasFees: gasFees["etherium"]
+          etheriumliquidityPools: this.handleLiquidityPools(blocks, address.etheriumLiquidityPoolsByBlock, "ethereum"),
+          etheriumInvestments: investments["ethereum"],
+          etheriumGasFees: gasFees["ethereum"]
         }
       })
     }
