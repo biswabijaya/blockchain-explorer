@@ -54,7 +54,7 @@ const EtheriumLiquidityPoolsPane = ({ address }) => {
                       {(data.reward != undefined)
                         ? <Grid.Row style={{ fontWeight: "500", fontSize: "14px", color: "#00b5ad" }}>
                           {`Earned $`}  {(address?.tokensIndexed[data.reward.tokenAddress] != undefined)
-                            ? (address?.tokensIndexed[data.reward.tokenAddress].tokenInfo.price.rate * parseInt(data.reward.value) / Math.pow(10, address?.uniqueTokens[data.reward.tokenAddress].decimal)).toFixed(4) : ''} {address?.uniqueTokens[data.reward.tokenAddress].symbol}
+                            ? (address?.tokensIndexed[data.reward.tokenAddress].tokenInfo.price.rate * parseInt(data.reward.value) / Math.pow(10, address?.uniqueTokens[data.reward.tokenAddress].decimal)).toFixed(4) : ''} {address?.uniqueTokens[data.reward.tokenAddress]?.symbol}
                         </Grid.Row>
                         : <Grid.Row style={{ fontWeight: "400", fontSize: "16px", color: "#000" }}>  </Grid.Row>
                       }

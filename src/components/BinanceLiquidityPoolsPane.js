@@ -13,8 +13,8 @@ var cumuValue = {
 }
 
 const BinanceLiquidityPoolsPane = ({ address }) => {
-  // console.log('BinanceLiquidityPoolsPane-Transactions', address.binanceliquidityPools);
-  // console.log('BinanceLiquidityPoolsPane-length', Object.keys(address.binanceBlocks).length);
+  console.log('BinanceLiquidityPoolsPane-Transactions', address.binanceliquidityPools);
+  console.log('BinanceLiquidityPoolsPane-length', Object.keys(address.binanceBlocks).length);
   var i = 1;
   if (!address.binanceliquidityPools) return null
   return (

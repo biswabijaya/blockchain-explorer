@@ -308,7 +308,7 @@ class App extends Component {
   }
 
   handleLabelling = (blocks,chain) => {
-    // console.log("handleLabelling called", blocks);
+    // console.log("handleLabelling called", blocks, liquidityPools[chain]);
     var tr_in = 0;
     var tr_out = 0;
     var tr_approve = 0;
@@ -316,24 +316,24 @@ class App extends Component {
     Object.keys(blocks).map((blockNumber) => {
       switch (blocks[blockNumber]['type']) {
         case 'Wallet Credit':
-          blocks[blockNumber]['platform'] = { ...uniqueAddress[blocks[blockNumber].transactions[0].from.toLowerCase()] } || { name: "Unknown Platform 1", address: blocks[blockNumber].transactions[0].from.toLowerCase() };
+          blocks[blockNumber].platform = { ...uniqueAddress[blocks[blockNumber].transactions[0].from.toLowerCase()] } || { name: "Unknown Platform 1", address: blocks[blockNumber].transactions[0].from.toLowerCase() };
           //invest
 
           break;
         case 'Wallet Debit':
-          blocks[blockNumber]['platform'] = { ...uniqueAddress[blocks[blockNumber].transactions[0].to.toLowerCase()] } || { name: "Unknown Platform 2", address: blocks[blockNumber].transactions[0].to.toLowerCase() };
+          blocks[blockNumber].platform = { ...uniqueAddress[blocks[blockNumber].transactions[0].to.toLowerCase()] } || { name: "Unknown Platform 2", address: blocks[blockNumber].transactions[0].to.toLowerCase() };
           break;
 
         default:
           if (blocks[blockNumber].transactions[0].contractAddress.toLowerCase() == "") {
-            blocks[blockNumber]['platform'] = { ...uniqueAddress[blocks[blockNumber].transactions[0].contractAddress.toLowerCase()] };
+            blocks[blockNumber].platform = { ...uniqueAddress[blocks[blockNumber].transactions[0].contractAddress.toLowerCase()] };
           } else {
             if (blocks[blockNumber].transactions[0].from.toLowerCase() != myAddress.toLowerCase()) {
-              blocks[blockNumber]['platform'] = { name: (uniqueAddress[blocks[blockNumber].transactions[0].from.toLowerCase()] != undefined) ? uniqueAddress[blocks[blockNumber].transactions[0].from.toLowerCase()].name : "Some Exchange", address: blocks[blockNumber].transactions[0].from.toLowerCase() };
+              blocks[blockNumber].platform = { name: (uniqueAddress[blocks[blockNumber].transactions[0].from.toLowerCase()] != undefined) ? uniqueAddress[blocks[blockNumber].transactions[0].from.toLowerCase()].name : "Some Exchange", address: blocks[blockNumber].transactions[0].from.toLowerCase() };
               //invest
 
             } else {
-              blocks[blockNumber]['platform'] = { name: "My Wallet", address: "" };
+              blocks[blockNumber].platform = { name: "My Wallet", address: "" };
             }
           }
           break;
@@ -343,31 +343,31 @@ class App extends Component {
       tr_out = blocks[blockNumber].out.length;
       tr_approve = blocks[blockNumber].approve.length;
 
-      let p_name = blocks[blockNumber]['platform'].name;
+      let p_name = blocks[blockNumber].platform.name;
 
       if ((tr_in == 1) && (tr_out == 0) && (tr_approve == 0)) {
-        blocks[blockNumber]['platform'].tname = "Add from " + p_name;
+        blocks[blockNumber].platform.tname = "Add from " + p_name;
       } else if ((tr_in == 0) && (tr_out == 1) && (tr_approve == 0)) {
-        blocks[blockNumber]['platform'].tname = "Withdraw from " + p_name;
+        blocks[blockNumber].platform.tname = "Withdraw from " + p_name;
       } else if ((tr_in == 1) && (tr_out == 1) && (tr_approve == 0)) {
-        blocks[blockNumber]['platform'].tname = "Swap " + blocks[blockNumber]['out'][0].tokenSymbol + " with " + blocks[blockNumber]['in'][0].tokenSymbol;
+        blocks[blockNumber].platform.tname = "Swap " + blocks[blockNumber]['out'][0].tokenSymbol + " with " + blocks[blockNumber]['in'][0].tokenSymbol;
 
       } else if ((tr_in == 1) && (tr_out == 1) && (tr_approve == 1)) {
         if (blocks[blockNumber]['approve'][0].address == blocks[blockNumber]['in'][0].address) {
           //if pool token is defined
           if (liquidityPools[chain][blocks[blockNumber]['transactions'][0].contractAddress] != undefined) {
-            blocks[blockNumber]['platform'].tname = liquidityPools[chain][blocks[blockNumber]['transactions'][0].contractAddress]["pool"] + " LP - Remove";
+            blocks[blockNumber].platform.tname = liquidityPools[chain][blocks[blockNumber]['transactions'][0].contractAddress]["pool"] + " LP - Remove";
             blocks[blockNumber].blockLabel = liquidityPools[chain][blocks[blockNumber]['transactions'][0].contractAddress]["pool"];
           } else if (liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress] != undefined) {
             //get reward in first transaction
             liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress]["reward"] = liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress]["reward"] || 0;
             liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress]["reward"] = parseInt(blocks[blockNumber]['transactions'][0].value);
 
-            blocks[blockNumber]['platform'].tname = liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress]["pool"] + " LP - Stake Again";
+            blocks[blockNumber].platform.tname = liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress]["pool"] + " LP - Stake Again";
             blocks[blockNumber].blockLabel = liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress]["pool"];
           }
         } else {
-          blocks[blockNumber]['platform'].tname = "Swap " + blocks[blockNumber]['out'][0].tokenSymbol + " with " + blocks[blockNumber]['in'][0].tokenSymbol;
+          blocks[blockNumber].platform.tname = "Swap " + blocks[blockNumber]['out'][0].tokenSymbol + " with " + blocks[blockNumber]['in'][0].tokenSymbol;
         }
 
       } else if ((tr_in == 1) && (tr_out == 2) && (tr_approve >= 0)) {
@@ -378,55 +378,112 @@ class App extends Component {
           if (a.tokenSymbol > b.tokenSymbol) { return 1; }
           return 0;
         })
+
+        //init lp/reward tokens
+        let lptoken = blocks[blockNumber].in[0];
+
+        // console.log("Add lptoken", lptoken, blocks[blockNumber]);
+
+        blocks[blockNumber].blockLabel = blocks[blockNumber].out[0].tokenSymbol + "/" + blocks[blockNumber].out[1].tokenSymbol;
+        blocks[blockNumber].platform.tname = blocks[blockNumber].blockLabel + " LP - Add";  
         
-        //if pool token is defined
-        if (uniqueTokens[blocks[blockNumber]['out'][0].address] != undefined) {
-          blocks[blockNumber]['platform'].tname = blocks[blockNumber]['out'][0].tokenSymbol + "/" + blocks[blockNumber]['out'][1].tokenSymbol + " LP - Add";
-          blocks[blockNumber].blockLabel = blocks[blockNumber]['out'][0].tokenSymbol + blocks[blockNumber]['out'][1].tokenSymbol;
-          blocks[blockNumber].blockLabelToken = uniqueTokens[blocks[blockNumber]['out'][0].address]
-          uniqueTokens[blocks[blockNumber]['out'][0].address]["pool"] = blocks[blockNumber].blockLabel;
-          liquidityPools[chain][blocks[blockNumber]['out'][0].address] = uniqueTokens[blocks[blockNumber]['out'][0].address];
-          console.log();
+        //if pool is added for first time
+        if (liquidityPools[chain][lptoken.contract] == undefined) {
+          
+          //add liquidity pool collateral token
+          uniqueTokens[lptoken.contract]["pool"] = blocks[blockNumber].blockLabel;
+          liquidityPools[chain][lptoken.contract] = uniqueTokens[lptoken.contract];
+
+          // console.log("First time LP Add -", blocks[blockNumber].blockLabel, lptoken, blocks[blockNumber]);
+        } else {
+          // console.log("Nth time LP Add -", blocks[blockNumber].blockLabel, lptoken, blocks[blockNumber]);
         }
+        
       } else if ((tr_in == 2) && (tr_out == 1) && (tr_approve >= 1)) {
 
-        //sort the pool assets in asc name
-        blocks[blockNumber]['in'].sort(function (a, b) {
-          if (a.tokenSymbol < b.tokenSymbol) { return -1; }
-          if (a.tokenSymbol > b.tokenSymbol) { return 1; }
-          return 0;
-        })
-        
-        //if pool token is defined
-        if (liquidityPools[chain][blocks[blockNumber]['transactions'][0].contractAddress] != undefined) {
-          blocks[blockNumber]['platform'].tname = liquidityPools[chain][blocks[blockNumber]['transactions'][0].contractAddress]["pool"] + " LP - Remove";
-          blocks[blockNumber].blockLabel = liquidityPools[chain][blocks[blockNumber]['transactions'][0].contractAddress]["pool"];
+        //init lp/reward tokens
+        let lptoken = blocks[blockNumber].out[0];
+        let rewardtoken = {};
+
+        console.log("First Remove Stake init");
+
+        //labeling - remove or unstake transaction
+        if ((blocks[blockNumber].in[0].tokenSymbol == blocks[blockNumber].out[0].tokenSymbol) || (blocks[blockNumber].in[1].tokenSymbol == blocks[blockNumber].out[0].tokenSymbol)) {
+          //if one of in token symbol matches with out token
+          if (liquidityPools[chain][lptoken.contract] != undefined){
+            blocks[blockNumber].platform.tname = liquidityPools[chain][lptoken.contract]["pool"] + " LP - Stake";
+            blocks[blockNumber].blockLabel = liquidityPools[chain][lptoken.contract]["pool"];
+          } else {
+            console.log("Before Unknown Type 1 considered Unstake",chain, blockNumber, lptoken, blocks[blockNumber], liquidityPools[chain][lptoken.contract]);
+            
+
+            //find lp/reward tokens
+
+            if (lptoken.contract == blocks[blockNumber].in[0]) {
+              rewardtoken = blocks[blockNumber].in[0];
+              lptoken = blocks[blockNumber].in[1];
+            } else {
+              rewardtoken = blocks[blockNumber].in[1];
+              lptoken = blocks[blockNumber].in[0];
+            }
+
+            if (lptoken.address == "0x0000000000000000000000000000000000000000") {
+              let temptoken = lptoken;
+              lptoken = rewardtoken;
+              rewardtoken = temptoken;
+            }
+
+            console.log("After Unknown Type 1 considered Unstake", chain, blockNumber, lptoken, blocks[blockNumber], liquidityPools[chain][lptoken.contract]);
+
+            if (liquidityPools[chain][lptoken.contract] != undefined){
+              //Unstake transaction
+              liquidityPools[chain][lptoken.contract]["reward"] = liquidityPools[chain][lptoken.contract]["reward"] || 0;
+              liquidityPools[chain][lptoken.contract]["reward"] += parseInt(rewardtoken.value);
+              blocks[blockNumber].platform.tname = liquidityPools[chain][lptoken.contract]["pool"] + " LP - Unstake";
+              blocks[blockNumber].blockLabel = liquidityPools[chain][lptoken.contract]["pool"];
+              console.log("Unstake transaction");
+            } else {
+              //Swap transaction
+              console.log("Swap transaction");
+              blocks[blockNumber].platform.tname = "Swap " + blocks[blockNumber]['in'][0].tokenSymbol + " with " + blocks[blockNumber]['in'][0].tokenSymbol;
+            }
+          }
+        } else {
+
+          if (liquidityPools[chain][lptoken.contract] != undefined) {
+            blocks[blockNumber].platform.tname = liquidityPools[chain][lptoken.contract]["pool"] + " LP - Remove";
+            blocks[blockNumber].blockLabel = liquidityPools[chain][lptoken.contract]["pool"];
+            blocks[blockNumber].blockLabelToken = lptoken;
+          } else {
+            console.log("Unknown Type 2 -", chain, blockNumber, lptoken, blocks[blockNumber], liquidityPools[chain][lptoken.contract]);
+          }
+          
         }
         
-      } else if ((tr_in == 0) && (tr_out == 1) && (tr_approve >= 1)) {
-        blocks[blockNumber]['platform'].tname = "Stake Transaction";
+        
+      } else if ((tr_in == 0) && (tr_out == 1) && (tr_approve >= 1)) {        
         if (liquidityPools[chain][blocks[blockNumber]['transactions'][0].contractAddress] != undefined) {
-          blocks[blockNumber]['platform'].tname = liquidityPools[chain][blocks[blockNumber]['transactions'][0].contractAddress]["pool"] +" LP - Stake";
+          blocks[blockNumber].platform.tname = liquidityPools[chain][blocks[blockNumber]['transactions'][0].contractAddress]["pool"] +" LP - Stake";
           blocks[blockNumber].blockLabel = liquidityPools[chain][blocks[blockNumber]['transactions'][0].contractAddress]["pool"];
         }
       } else if ((tr_in == 2) && (tr_out == 0) && (tr_approve >= 1)) {
-        blocks[blockNumber]['platform'].tname = "Un-Stake Transaction";
+        blocks[blockNumber].platform.tname = "Un-Stake Transaction";
         if (liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress] != undefined) {
           //get reward in first transaction
           liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress]["reward"] = liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress]["reward"] || 0;
           liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress]["reward"] += parseInt(blocks[blockNumber]['transactions'][0].value);
 
-          blocks[blockNumber]['platform'].tname = liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress]["pool"] + " LP - Unstake";
+          blocks[blockNumber].platform.tname = liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress]["pool"] + " LP - Unstake";
           blocks[blockNumber].blockLabel = liquidityPools[chain][blocks[blockNumber]['transactions'][1].contractAddress]["pool"];
         }
         // console.log(blockNumber, blocks[blockNumber]);
 
       } else {
-        blocks[blockNumber]['platform'].tname = "Approval Transaction";
+        blocks[blockNumber].platform.tname = "Approval Transaction";
         if (uniqueAddress[blocks[blockNumber].transactions[0].to]!=undefined) {
-          blocks[blockNumber]['platform'].name = uniqueAddress[blocks[blockNumber].transactions[0].to].name;
+          blocks[blockNumber].platform.name = uniqueAddress[blocks[blockNumber].transactions[0].to].name;
         } else {
-          blocks[blockNumber]['platform'].name = "Decentralised Wallet";
+          blocks[blockNumber].platform.name = "Decentralised Wallet";
         }
       }
 
@@ -437,7 +494,7 @@ class App extends Component {
 
     });
 
-    // console.log("liquidityPools", liquidityPools);
+    console.log("liquidityPools", liquidityPools);
     // console.log("investments", chain, investments[chain]);
     // console.log("gasFees", chain, gasFees[chain]);
 
@@ -541,7 +598,7 @@ class App extends Component {
           if (liquidity_pool[pool_name].length==0) {
             let holdingPer = liquidityPoolsByBlock[blockNumber]?.balanceLPToken / liquidityPoolsByBlock[blockNumber]?.supplyLPToken *100;
             objectPrintHolding = {
-              holding: holdingPer,
+              holding: +holdingPer || 0,
               chain:chain,
               poolname: liquidityPoolsByBlock[blockNumber]?.poolname,
               gasFee: parseFloat(blocks[blockNumber].gasFee),
@@ -549,7 +606,7 @@ class App extends Component {
               invested: 0,
               withdrawn: 0,
               reserveUSD: liquidityPoolsByBlock[blockNumber]?.reserveUSD,
-              holdingUSD: +(liquidityPoolsByBlock[blockNumber]?.reserveUSD * holdingPer * 0.01).toFixed(4),
+              holdingUSD: +(liquidityPoolsByBlock[blockNumber]?.reserveUSD * holdingPer * 0.01).toFixed(4) || 0,
               holdingLPToken: liquidityPoolsByBlock[blockNumber]?.balanceLPToken,
               balanceLPToken: liquidityPoolsByBlock[blockNumber]?.balanceLPToken,
               supplyLPToken: liquidityPoolsByBlock[blockNumber]?.supplyLPToken,
@@ -562,15 +619,15 @@ class App extends Component {
             let holdingPer = newHolding / liquidityPoolsByBlock[blockNumber]?.supplyLPToken * 100;
 
             objectPrintHolding = {
-              holding: holdingPer,
+              holding: +holdingPer || 0,
               chain:chain,
               poolname: liquidityPoolsByBlock[blockNumber]?.poolname,
               gasFee: parseFloat(blocks[blockNumber].gasFee),
               gasFeeCumu:liquidity_pool_gasfees[pool_name],
-              invested: temp_details.invested,
+              invested: +temp_details.invested || 0,
               withdrawn: temp_details.withdrawn,
               reserveUSD: liquidityPoolsByBlock[blockNumber]?.reserveUSD,
-              holdingUSD: +(liquidityPoolsByBlock[blockNumber]?.reserveUSD * holdingPer * 0.01).toFixed(4),
+              holdingUSD: +(liquidityPoolsByBlock[blockNumber]?.reserveUSD * holdingPer * 0.01).toFixed(4) || 0,
               holdingLPToken: newHolding,
               balanceLPToken: liquidityPoolsByBlock[blockNumber]?.balanceLPToken,
               supplyLPToken: liquidityPoolsByBlock[blockNumber]?.supplyLPToken,
@@ -581,6 +638,8 @@ class App extends Component {
 
           //token1
           let token_symbol_0 = blocks[blockNumber].out[0].tokenSymbol;
+          let token_symbol_1 = blocks[blockNumber].out[1].tokenSymbol;
+
               //add quantity
               liquidity_pool_assets[pool_name][token_symbol_0].tokenValue += (+blocks[blockNumber].out[0].tokenValue / Math.pow(10, blocks[blockNumber].out[0].tokenDecimal || 18));
 
@@ -603,9 +662,9 @@ class App extends Component {
 
               objectPrint[token_symbol_0] = {
                 addedUSD: token0_added,
-                withdrawnUSD: token0_withdrawn,
+                withdrawnUSD: token0_withdrawn || 0,
                 currentUSD: token0_current,
-                investedUSD: token0_invested,
+                investedUSD: token0_invested  || 0,
                 tokenPrice: liquidityPoolsByBlock[blockNumber]?.priceUSD[token_symbol_0],
                 tokenValue: +liquidity_pool_assets[pool_name][token_symbol_0].tokenValue,
                 tokenDifference: 0,
@@ -613,10 +672,10 @@ class App extends Component {
                 tokenWithdrawn: 0
               }
 
-              console.log("----@@@@@@---T0----Add"+pool_name, objectPrint);
+              // console.log("----@@@@@@---T0----Add"+pool_name, objectPrint);
           
           //token2
-          let token_symbol_1 = blocks[blockNumber].out[1].tokenSymbol;
+          
               //add quantity
               liquidity_pool_assets[pool_name][token_symbol_1].tokenValue += (+blocks[blockNumber].out[1].tokenValue / Math.pow(10, blocks[blockNumber].out[1].tokenDecimal || 18));
 
@@ -639,9 +698,9 @@ class App extends Component {
 
               objectPrint[token_symbol_1] = {
                 addedUSD: token1_added,
-                withdrawnUSD: token1_withdrawn,
+                withdrawnUSD: token1_withdrawn || 0,
                 currentUSD: token1_current,
-                investedUSD: token1_invested,
+                investedUSD: token1_invested || 0,
                 tokenPrice: liquidityPoolsByBlock[blockNumber]?.priceUSD[token_symbol_1],
                 tokenValue: +liquidity_pool_assets[pool_name][token_symbol_1].tokenValue,
                 tokenDifference: 0,
@@ -654,28 +713,32 @@ class App extends Component {
           objectPrintLPHolding = {
             [token_symbol_0]: +liquidity_pool_assets[pool_name][token_symbol_0].tokenValue,
             [token_symbol_1]: +liquidity_pool_assets[pool_name][token_symbol_1].tokenValue,
-            [token_symbol_0 + 'USD']: +liquidity_pool_assets[pool_name][token_symbol_0].tokenValue * liquidityPoolsByBlock[blockNumber]?.priceUSD[token_symbol_0],
-            [token_symbol_1 + 'USD']: +liquidity_pool_assets[pool_name][token_symbol_1].tokenValue * liquidityPoolsByBlock[blockNumber]?.priceUSD[token_symbol_1],
+            [token_symbol_0 + 'USD']: +liquidity_pool_assets[pool_name][token_symbol_0].tokenValue * liquidityPoolsByBlock[blockNumber].priceUSD[token_symbol_0],
+            [token_symbol_1 + 'USD']: +liquidity_pool_assets[pool_name][token_symbol_1].tokenValue * liquidityPoolsByBlock[blockNumber].priceUSD[token_symbol_1],
             k: +(+liquidity_pool_assets[pool_name][token_symbol_0].tokenValue * +liquidity_pool_assets[pool_name][token_symbol_1].tokenValue),
-            r: +liquidityPoolsByBlock[blockNumber]?.priceRatio
+            r: +liquidityPoolsByBlock[blockNumber].priceRatio
           };
 
           if (token_symbol_0 == liquidityPoolsByBlock[blockNumber].pair.token0.symbol) {
-            objectPrintLPHolding[token_symbol_0 + "t"] = Math.sqrt(objectPrintLPHolding.k / objectPrintLPHolding.r);
+            objectPrintLPHolding[token_symbol_0 + "t"] = (objectPrintLPHolding.r==0) ? 0 : Math.sqrt(objectPrintLPHolding.k / objectPrintLPHolding.r);
             objectPrintLPHolding[token_symbol_1 + "t"] = Math.sqrt(objectPrintLPHolding.k * objectPrintLPHolding.r);
           } else {
-            objectPrintLPHolding[token_symbol_1 + "t"] = Math.sqrt(objectPrintLPHolding.k / objectPrintLPHolding.r);
+            objectPrintLPHolding[token_symbol_1 + "t"] = (objectPrintLPHolding.r == 0) ? 0 : Math.sqrt(objectPrintLPHolding.k / objectPrintLPHolding.r);
             objectPrintLPHolding[token_symbol_0 + "t"] = Math.sqrt(objectPrintLPHolding.k * objectPrintLPHolding.r);
           }
           
-          objectPrintLPHolding[token_symbol_0 + "tUSD"] = objectPrintLPHolding[token_symbol_0 + "t"]* liquidityPoolsByBlock[blockNumber]?.priceUSD[token_symbol_0];
-          objectPrintLPHolding[token_symbol_1 + "tUSD"] = objectPrintLPHolding[token_symbol_1 + "t"] * liquidityPoolsByBlock[blockNumber]?.priceUSD[token_symbol_1];
+          objectPrintLPHolding[token_symbol_0 + "tUSD"] = objectPrintLPHolding[token_symbol_0 + "t"]* liquidityPoolsByBlock[blockNumber].priceUSD[token_symbol_0];
+          objectPrintLPHolding[token_symbol_1 + "tUSD"] = objectPrintLPHolding[token_symbol_1 + "t"] * liquidityPoolsByBlock[blockNumber].priceUSD[token_symbol_1];
 
           objectPrintLPHolding.totalUSD = objectPrintLPHolding[token_symbol_0 + "USD"] + objectPrintLPHolding[token_symbol_1 + "USD"];
           objectPrintLPHolding.totaltUSD = objectPrintLPHolding[token_symbol_0 + "tUSD"] + objectPrintLPHolding[token_symbol_1 + "tUSD"];
 
           objectPrintLPHolding.ilUSD = objectPrintLPHolding.totalUSD - objectPrintLPHolding.totaltUSD;
-          objectPrintLPHolding.ilPer = objectPrintLPHolding.ilUSD / objectPrintLPHolding.totaltUSD * 100;
+          objectPrintLPHolding.ilPer = (objectPrintLPHolding.totaltUSD == 0) ? 0 : objectPrintLPHolding.ilUSD / objectPrintLPHolding.totaltUSD * 100;
+
+          if (blockNumber == "10543506") {
+            console.log("10543506", objectPrintHolding, objectPrintLPHolding);
+          }
           
           liquidity_pool[pool_name].push({
             block: blockNumber,
@@ -687,13 +750,13 @@ class App extends Component {
             value: blocks[blockNumber].out[0].tokenValue,
             tokensIn: blocks[blockNumber].in,
             tokensOut: blocks[blockNumber].out,
-            tokenPrices: liquidityPoolsByBlock[blockNumber]?.priceUSD,
+            tokenPrices: liquidityPoolsByBlock[blockNumber].priceUSD,
             reward: liquidity_pool_rewards[pool_name]
           });
 
-          
-
         } else if (blocks[blockNumber]["platform"].tname.indexOf("Remove") !== -1) {
+
+          // console.log("Remove Init ", blocks[blockNumber], pool_name , chain);
 
           let objectPrint = {};
           let objectPrintLPHolding = {};
@@ -708,14 +771,14 @@ class App extends Component {
 
           let objectPrintHolding = {
             chain:chain,
-            holding: holdingPer,
+            holding: +holdingPer || 0,
             poolname: liquidityPoolsByBlock[blockNumber]?.poolname,
             gasFee: parseFloat(blocks[blockNumber].gasFee),
             gasFeeCumu:liquidity_pool_gasfees[pool_name],
-            invested: temp_details.invested,
+            invested: +temp_details.invested || 0,
             withdrawn: temp_details.withdrawn,
             reserveUSD: liquidityPoolsByBlock[blockNumber]?.reserveUSD,
-            holdingUSD: +(liquidityPoolsByBlock[blockNumber]?.reserveUSD * holdingPer * 0.01).toFixed(4),
+            holdingUSD: +(liquidityPoolsByBlock[blockNumber]?.reserveUSD * holdingPer * 0.01).toFixed(4) || 0,
             holdingLPToken: newHolding,
             balanceLPToken: liquidityPoolsByBlock[blockNumber]?.balanceLPToken,
             supplyLPToken: liquidityPoolsByBlock[blockNumber]?.supplyLPToken,
@@ -724,19 +787,22 @@ class App extends Component {
 
           //token 2
           if (blocks[blockNumber].in[1] == undefined) {
-            console.log("------Undefined pair", blockNumber, liquidity_pool_assets[pool_name], blocks[blockNumber], blocks[blockNumber].in[0].tokenSymbol);
+            console.log("------Undefined before pair", blockNumber, liquidity_pool_assets[pool_name], blocks[blockNumber].in, blocks[blockNumber].in[0].tokenSymbol);
 
             let price = liquidityPoolsByBlock[blockNumber].priceUSD["WETH"];
             let priceinvested = temp_details.invested/2;
 
             //handle issue
             blocks[blockNumber].in[1] = {
+              "contract": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
               "address": "0xa10d2e55f0f87756d6f99960176120c512eb3e15",
               "tokenSymbol": "WETH",
               "tokenName": "Wrapped Eth Token",
               "tokenDecimal": "18",
               "tokenValue": "" + parseInt(priceinvested / price * Math.pow(10,18))
             }
+            console.log("------Undefined after pair", blockNumber, liquidity_pool_assets[pool_name], blocks[blockNumber].in, blocks[blockNumber].in[0].tokenSymbol);
+
           }
 
           
@@ -753,6 +819,9 @@ class App extends Component {
           let token1_added = 0;
 
           let token0_difference_value = (blocks[blockNumber].in[0].tokenValue / Math.pow(10, blocks[blockNumber].in[0].tokenDecimal)) - liquidity_pool_assets[pool_name][token_symbol_0].tokenValue;
+          if (liquidity_pool_assets[pool_name][token_symbol_1]==undefined) {
+            console.log("Undefined Dismatch", blockNumber,  blocks[blockNumber], liquidity_pool_assets[pool_name])
+          }
           let token1_difference_value = (blocks[blockNumber].in[1].tokenValue / Math.pow(10, blocks[blockNumber].in[1].tokenDecimal)) - liquidity_pool_assets[pool_name][token_symbol_1].tokenValue;
 
           let token0_invested_value = liquidity_pool_assets[pool_name][token_symbol_0].tokenValue;
@@ -797,9 +866,9 @@ class App extends Component {
 
               objectPrint[token_symbol_0] = {
                 addedUSD: token0_added,
-                withdrawnUSD: token0_withdrawn,
+                withdrawnUSD: token0_withdrawn || 0,
                 currentUSD: token0_current,
-                investedUSD: token0_invested,
+                investedUSD: token0_invested  || 0,
                 tokenPrice: liquidityPoolsByBlock[blockNumber]?.priceUSD[token_symbol_0],
                 tokenValue: +liquidity_pool_assets[pool_name][token_symbol_0].tokenValue,
                 tokenDifference: token0_difference_value,
@@ -819,9 +888,9 @@ class App extends Component {
 
               objectPrint[token_symbol_1] = {
                 addedUSD: token1_added,
-                withdrawnUSD: token1_withdrawn,
+                withdrawnUSD: token1_withdrawn || 0,
                 currentUSD: token1_current,
-                investedUSD: token1_invested,
+                investedUSD: token1_invested || 0,
                 tokenPrice: liquidityPoolsByBlock[blockNumber]?.priceUSD[token_symbol_1],
                 tokenValue: +liquidity_pool_assets[pool_name][token_symbol_1].tokenValue,
                 tokenDifference: token1_difference_value,
@@ -842,10 +911,10 @@ class App extends Component {
           };
 
           if (token_symbol_0 == liquidityPoolsByBlock[blockNumber].pair.token0.symbol) {
-            objectPrintLPHolding[token_symbol_0 + "t"] = Math.sqrt(objectPrintLPHolding.k / objectPrintLPHolding.r);
+            objectPrintLPHolding[token_symbol_0 + "t"] = (objectPrintLPHolding.r == 0) ? 0 :Math.sqrt(objectPrintLPHolding.k / objectPrintLPHolding.r);
             objectPrintLPHolding[token_symbol_1 + "t"] = Math.sqrt(objectPrintLPHolding.k * objectPrintLPHolding.r);
           } else {
-            objectPrintLPHolding[token_symbol_1 + "t"] = Math.sqrt(objectPrintLPHolding.k / objectPrintLPHolding.r);
+            objectPrintLPHolding[token_symbol_1 + "t"] = (objectPrintLPHolding.r == 0) ? 0 :Math.sqrt(objectPrintLPHolding.k / objectPrintLPHolding.r);
             objectPrintLPHolding[token_symbol_0 + "t"] = Math.sqrt(objectPrintLPHolding.k * objectPrintLPHolding.r);
           }
           
@@ -856,7 +925,7 @@ class App extends Component {
           objectPrintLPHolding.totaltUSD = objectPrintLPHolding[token_symbol_0 + "tUSD"] + objectPrintLPHolding[token_symbol_1 + "tUSD"];
 
           objectPrintLPHolding.ilUSD = objectPrintLPHolding.totalUSD - objectPrintLPHolding.totaltUSD;
-          objectPrintLPHolding.ilPer = objectPrintLPHolding.ilUSD / objectPrintLPHolding.totaltUSD * 100;
+          objectPrintLPHolding.ilPer = (objectPrintLPHolding.totaltUSD == 0) ? 0 : objectPrintLPHolding.ilUSD / objectPrintLPHolding.totaltUSD * 100;
 
           liquidity_pool[pool_name].push({
             block: blockNumber,
@@ -883,14 +952,14 @@ class App extends Component {
 
           let objectPrintHolding = {
             chain:chain,
-            holding: holdingPer,
+            holding: +holdingPer || 0,
             poolname: liquidityPoolsByBlock[blockNumber]?.poolname,
             gasFee: parseFloat(blocks[blockNumber].gasFee),
             gasFeeCumu:liquidity_pool_gasfees[pool_name],
-            invested: temp_details.invested,
+            invested: +temp_details.invested || 0,
             withdrawn: temp_details.withdrawn,
             reserveUSD: liquidityPoolsByBlock[blockNumber]?.reserveUSD,
-            holdingUSD: +(liquidityPoolsByBlock[blockNumber]?.reserveUSD * holdingPer * 0.01).toFixed(4),
+            holdingUSD: +(liquidityPoolsByBlock[blockNumber]?.reserveUSD * holdingPer * 0.01).toFixed(4) || 0,
             holdingLPToken: temp_details.holdingLPToken,
             balanceLPToken: liquidityPoolsByBlock[blockNumber]?.balanceLPToken,
             supplyLPToken: liquidityPoolsByBlock[blockNumber]?.supplyLPToken,
@@ -926,10 +995,10 @@ class App extends Component {
           };
 
           if (token_symbol_0 == liquidityPoolsByBlock[blockNumber].pair.token0.symbol) {
-            objectPrintLPHolding[token_symbol_0 + "t"] = Math.sqrt(objectPrintLPHolding.k / objectPrintLPHolding.r);
+            objectPrintLPHolding[token_symbol_0 + "t"] = (objectPrintLPHolding.r == 0) ? 0 : Math.sqrt(objectPrintLPHolding.k / objectPrintLPHolding.r);
             objectPrintLPHolding[token_symbol_1 + "t"] = Math.sqrt(objectPrintLPHolding.k * objectPrintLPHolding.r);
           } else {
-            objectPrintLPHolding[token_symbol_1 + "t"] = Math.sqrt(objectPrintLPHolding.k / objectPrintLPHolding.r);
+            objectPrintLPHolding[token_symbol_1 + "t"] = (objectPrintLPHolding.r == 0) ? 0 : Math.sqrt(objectPrintLPHolding.k / objectPrintLPHolding.r);
             objectPrintLPHolding[token_symbol_0 + "t"] = Math.sqrt(objectPrintLPHolding.k * objectPrintLPHolding.r);
           }
           
@@ -940,7 +1009,7 @@ class App extends Component {
           objectPrintLPHolding.totaltUSD = objectPrintLPHolding[token_symbol_0 + "tUSD"] + objectPrintLPHolding[token_symbol_1 + "tUSD"];
 
           objectPrintLPHolding.ilUSD = objectPrintLPHolding.totalUSD - objectPrintLPHolding.totaltUSD;
-          objectPrintLPHolding.ilPer = objectPrintLPHolding.ilUSD / objectPrintLPHolding.totaltUSD * 100;
+          objectPrintLPHolding.ilPer = (objectPrintLPHolding.totaltUSD == 0) ? 0 : objectPrintLPHolding.ilUSD / objectPrintLPHolding.totaltUSD * 100;
 
           if (Object.keys(liquidity_pool_rewards[pool_name]) == 0) {
             let rewardtoken = uniqueTokens[(blocks[blockNumber].transactions[0].contractAddress).toLowerCase()]
@@ -978,14 +1047,14 @@ class App extends Component {
 
           let objectPrintHolding = {
             chain:chain,
-            holding: holdingPer,
+            holding: +holdingPer || 0,
             poolname: liquidityPoolsByBlock[blockNumber]?.poolname,
             gasFee: parseFloat(blocks[blockNumber].gasFee),
             gasFeeCumu:liquidity_pool_gasfees[pool_name],
-            invested: temp_details.invested,
+            invested: +temp_details.invested || 0,
             withdrawn: temp_details.withdrawn,
             reserveUSD: liquidityPoolsByBlock[blockNumber]?.reserveUSD,
-            holdingUSD: +(liquidityPoolsByBlock[blockNumber]?.reserveUSD * holdingPer * 0.01).toFixed(4),
+            holdingUSD: +(liquidityPoolsByBlock[blockNumber]?.reserveUSD * holdingPer * 0.01).toFixed(4) || 0,
             holdingLPToken: temp_details.holdingLPToken,
             balanceLPToken: liquidityPoolsByBlock[blockNumber]?.balanceLPToken,
             supplyLPToken: liquidityPoolsByBlock[blockNumber]?.supplyLPToken,
@@ -1021,10 +1090,10 @@ class App extends Component {
           };
 
           if (token_symbol_0 == liquidityPoolsByBlock[blockNumber].pair.token0.symbol) {
-            objectPrintLPHolding[token_symbol_0 + "t"] = Math.sqrt(objectPrintLPHolding.k / objectPrintLPHolding.r);
+            objectPrintLPHolding[token_symbol_0 + "t"] = (objectPrintLPHolding.r == 0) ? 0 : Math.sqrt(objectPrintLPHolding.k / objectPrintLPHolding.r);
             objectPrintLPHolding[token_symbol_1 + "t"] = Math.sqrt(objectPrintLPHolding.k * objectPrintLPHolding.r);
           } else {
-            objectPrintLPHolding[token_symbol_1 + "t"] = Math.sqrt(objectPrintLPHolding.k / objectPrintLPHolding.r);
+            objectPrintLPHolding[token_symbol_1 + "t"] = (objectPrintLPHolding.r == 0) ? 0 : Math.sqrt(objectPrintLPHolding.k / objectPrintLPHolding.r);
             objectPrintLPHolding[token_symbol_0 + "t"] = Math.sqrt(objectPrintLPHolding.k * objectPrintLPHolding.r);
           }
 
@@ -1035,7 +1104,7 @@ class App extends Component {
           objectPrintLPHolding.totaltUSD = objectPrintLPHolding[token_symbol_0 + "tUSD"] + objectPrintLPHolding[token_symbol_1 + "tUSD"];
 
           objectPrintLPHolding.ilUSD = objectPrintLPHolding.totalUSD - objectPrintLPHolding.totaltUSD;
-          objectPrintLPHolding.ilPer = objectPrintLPHolding.ilUSD / objectPrintLPHolding.totaltUSD * 100;
+          objectPrintLPHolding.ilPer = (objectPrintLPHolding.totaltUSD == 0) ? 0 : objectPrintLPHolding.ilUSD / objectPrintLPHolding.totaltUSD * 100;
 
           liquidity_pool[pool_name].push({
             block: blockNumber,
@@ -1063,14 +1132,14 @@ class App extends Component {
 
           let objectPrintHolding = {
             chain:chain,
-            holding: holdingPer,
+            holding: +holdingPer || 0,
             poolname: liquidityPoolsByBlock[blockNumber]?.poolname,
             gasFee: parseFloat(blocks[blockNumber].gasFee),
             gasFeeCumu:liquidity_pool_gasfees[pool_name],
-            invested: temp_details.invested,
+            invested: +temp_details.invested || 0,
             withdrawn: temp_details.withdrawn,
             reserveUSD: liquidityPoolsByBlock[blockNumber]?.reserveUSD,
-            holdingUSD: +(liquidityPoolsByBlock[blockNumber]?.reserveUSD * holdingPer * 0.01).toFixed(4),
+            holdingUSD: +(liquidityPoolsByBlock[blockNumber]?.reserveUSD * holdingPer * 0.01).toFixed(4) || 0,
             holdingLPToken: temp_details.holdingLPToken,
             balanceLPToken: liquidityPoolsByBlock[blockNumber]?.balanceLPToken,
             supplyLPToken: liquidityPoolsByBlock[blockNumber]?.supplyLPToken,
@@ -1106,10 +1175,10 @@ class App extends Component {
           };
 
           if (token_symbol_0 == liquidityPoolsByBlock[blockNumber].pair.token0.symbol) {
-            objectPrintLPHolding[token_symbol_0 + "t"] = Math.sqrt(objectPrintLPHolding.k / objectPrintLPHolding.r);
+            objectPrintLPHolding[token_symbol_0 + "t"] = (objectPrintLPHolding.r == 0) ? 0 : Math.sqrt(objectPrintLPHolding.k / objectPrintLPHolding.r);
             objectPrintLPHolding[token_symbol_1 + "t"] = Math.sqrt(objectPrintLPHolding.k * objectPrintLPHolding.r);
           } else {
-            objectPrintLPHolding[token_symbol_1 + "t"] = Math.sqrt(objectPrintLPHolding.k / objectPrintLPHolding.r);
+            objectPrintLPHolding[token_symbol_1 + "t"] = (objectPrintLPHolding.r == 0) ? 0 : Math.sqrt(objectPrintLPHolding.k / objectPrintLPHolding.r);
             objectPrintLPHolding[token_symbol_0 + "t"] = Math.sqrt(objectPrintLPHolding.k * objectPrintLPHolding.r);
           }
 
@@ -1120,7 +1189,7 @@ class App extends Component {
           objectPrintLPHolding.totaltUSD = objectPrintLPHolding[token_symbol_0 + "tUSD"] + objectPrintLPHolding[token_symbol_1 + "tUSD"];
 
           objectPrintLPHolding.ilUSD = objectPrintLPHolding.totalUSD - objectPrintLPHolding.totaltUSD;
-          objectPrintLPHolding.ilPer = objectPrintLPHolding.ilUSD / objectPrintLPHolding.totaltUSD * 100;
+          objectPrintLPHolding.ilPer = (objectPrintLPHolding.totaltUSD == 0) ? 0 : objectPrintLPHolding.ilUSD / objectPrintLPHolding.totaltUSD * 100;
 
           if (Object.keys(liquidity_pool_rewards[pool_name]) == 0) {
             let rewardtoken = uniqueTokens[(blocks[blockNumber].transactions[0].contractAddress).toLowerCase()]
@@ -1171,15 +1240,15 @@ class App extends Component {
         (transaction.value == "0")
           ? blocks[transaction["blockNumber"]].approve.push({ "type": "Approve Token Transfer", address: transaction.to, "name": (uniqueAddress[transaction.to] != undefined) ? uniqueAddress[transaction.to].name : "Unknown Approval", "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
           : (transaction.to == address.address)
-            ? blocks[transaction["blockNumber"]].in.push({ address: transaction.from, "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
-            : blocks[transaction["blockNumber"]].out.push({ address: transaction.to, "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
-        
+            ? blocks[transaction["blockNumber"]].in.push({ contract: transaction.contractAddress, address: transaction.from , "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
+            : blocks[transaction["blockNumber"]].out.push({ contract: transaction.contractAddress, address: transaction.to, "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
         blocks[transaction["blockNumber"]]['type'] = (blocks[transaction["blockNumber"]].type == 'Normal') ? (blocks[transaction["blockNumber"]].in.length > 0) ? 'Wallet Credit' : 'Wallet Debit' : 'Defi Dex';
         blocks[transaction["blockNumber"]]['gasFee'] = (blocks[transaction["blockNumber"]].transactions[0].gasUsed * blocks[transaction["blockNumber"]].transactions[0].gasPrice / Math.pow(10, 18)).toFixed(4) + ' Eth';
         // store uniqueTokens ;
         if (transaction["contractAddress"] != undefined) {
           uniqueTokens[transaction["contractAddress"]] = {
-            'address':transaction["contractAddress"],
+            'contract': transaction["contractAddress"],
+            'address': transaction["contractAddress"],
             'name': transaction["tokenName"],
             'symbol': transaction["tokenSymbol"],
             'decimal': parseInt(transaction["tokenDecimal"])
@@ -1205,7 +1274,7 @@ class App extends Component {
   handleBinanceTokenTransfers = result => {
     if (result.status === '1') {
       var address = this.state.address;
-      var blocks = { };
+      var blocks = {};
       //find unique tokens
       result.result.map((transaction) => {
         //combine blocks
@@ -1219,24 +1288,21 @@ class App extends Component {
         (transaction.value == "0")
           ? blocks[transaction["blockNumber"]].approve.push({ "type": "Approve Token Transfer", address: transaction.to, "name": (uniqueAddress[transaction.to] != undefined) ? uniqueAddress[transaction.to].name : "Unknown Approval", "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
           : (transaction.to == address.address)
-            ? blocks[transaction["blockNumber"]].in.push({ address: transaction.from, "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
-            : blocks[transaction["blockNumber"]].out.push({ address: transaction.to, "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
-
+            ? blocks[transaction["blockNumber"]].in.push({ contract: transaction.contractAddress, address: transaction.from , "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
+            : blocks[transaction["blockNumber"]].out.push({ contract: transaction.contractAddress, address: transaction.to, "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
         blocks[transaction["blockNumber"]]['type'] = (blocks[transaction["blockNumber"]].type == 'Normal') ? (blocks[transaction["blockNumber"]].in.length > 0) ? 'Wallet Credit' : 'Wallet Debit' : 'Defi Dex';
         blocks[transaction["blockNumber"]]['gasFee'] = (blocks[transaction["blockNumber"]].transactions[0].gasUsed * blocks[transaction["blockNumber"]].transactions[0].gasPrice / Math.pow(10, 18)).toFixed(4) + ' BNB';
         // store uniqueTokens ;
         if (transaction["contractAddress"] != undefined) {
           uniqueTokens[transaction["contractAddress"]] = {
-            'address':transaction["contractAddress"],
+            'contract': transaction["contractAddress"],
+            'address': transaction["contractAddress"],
             'name': transaction["tokenName"],
             'symbol': transaction["tokenSymbol"],
             'decimal': parseInt(transaction["tokenDecimal"])
           };
         }
       })
-
-
-      console.log("bnnnnnnb",uniqueTokens);
 
       //store unique contract addresses
       address["uniqueTokens"] = uniqueTokens;
@@ -1270,14 +1336,15 @@ class App extends Component {
         (transaction.value == "0")
           ? blocks[transaction["blockNumber"]].approve.push({ "type": "Approve Token Transfer", address: transaction.to, "name": (uniqueAddress[transaction.to] != undefined) ? uniqueAddress[transaction.to].name : "Unknown Approval", "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
           : (transaction.to == address.address)
-            ? blocks[transaction["blockNumber"]].in.push({ address: transaction.from, "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
-            : blocks[transaction["blockNumber"]].out.push({ address: transaction.to, "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
+            ? blocks[transaction["blockNumber"]].in.push({ contract: transaction.contractAddress, address: transaction.from, "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
+            : blocks[transaction["blockNumber"]].out.push({ contract: transaction.contractAddress, address: transaction.to, "tokenSymbol": transaction.tokenSymbol, "tokenName": transaction.tokenName, "tokenDecimal": transaction.tokenDecimal, "tokenValue": transaction.value })
 
         blocks[transaction["blockNumber"]]['type'] = (blocks[transaction["blockNumber"]].type == 'Normal') ? (blocks[transaction["blockNumber"]].in.length > 0) ? 'Wallet Credit' : 'Wallet Debit' : 'Defi Dex';
         blocks[transaction["blockNumber"]]['gasFee'] = (blocks[transaction["blockNumber"]].transactions[0].gasUsed * blocks[transaction["blockNumber"]].transactions[0].gasPrice / Math.pow(10, 18)).toFixed(4) + ' Eth';
         // store uniqueTokens ;
         if (transaction["contractAddress"] != undefined) {
           uniqueTokens[transaction["contractAddress"]] = {
+            'contract': transaction["contractAddress"],
             'address':transaction["contractAddress"],
             'name': transaction["tokenName"],
             'symbol': transaction["tokenSymbol"],
@@ -1315,7 +1382,7 @@ class App extends Component {
         transaction['type'] = "Wallet Transaction";
         
         if (transaction.to == "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2" && transaction.value > 0) {
-          blocks[transaction["blockNumber"]].in.push({ address: transaction.to,"tokenSymbol": "Weth", "tokenName": "Wrapped Ether", "tokenDecimal": "18", "tokenValue": transaction.value })
+          blocks[transaction["blockNumber"]].in.push({ contract: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", address: transaction.to,"tokenSymbol": "WETH", "tokenName": "Wrapped Ether", "tokenDecimal": "18", "tokenValue": transaction.value })
           var transactiona = {
             ...transaction,
             to: address.address,
@@ -1327,6 +1394,7 @@ class App extends Component {
             type: "Token Transfer"
           };
           uniqueTokens[transaction.to] = {
+            'contract': '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
             'address': transaction.to,
             'name': transactiona["tokenName"],
             'symbol': transactiona["tokenSymbol"],
@@ -1339,8 +1407,8 @@ class App extends Component {
         (transaction.value == "0")
           ? blocks[transaction["blockNumber"]].approve.push({ "type": "Approve Transaction", "address": transaction.to, "name": (uniqueAddress[transaction.to] != undefined) ? uniqueAddress[transaction.to].name : "Unknown Approval"  })
           : (transaction.to == address.address)
-            ? blocks[transaction["blockNumber"]].in.push({ address: address.address, "tokenSymbol": "Eth", "tokenName": "Ethereum", "tokenDecimal": "18", "tokenValue": transaction.value })
-            : blocks[transaction["blockNumber"]].out.push({ address: address.address, "tokenSymbol": "Eth", "tokenName": "Ethereum", "tokenDecimal": "18", "tokenValue": transaction.value })
+            ? blocks[transaction["blockNumber"]].in.push({ contract: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", address: address.address, "tokenSymbol": "WETH", "tokenName": "Wrapped Ether", "tokenDecimal": "18", "tokenValue": transaction.value })
+            : blocks[transaction["blockNumber"]].out.push({ contract: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", address: address.address, "tokenSymbol": "WETH", "tokenName": "Wrapped Ether", "tokenDecimal": "18", "tokenValue": transaction.value })
 
         blocks[transaction["blockNumber"]]['type'] = (blocks[transaction["blockNumber"]].type == 'Normal') ? (blocks[transaction["blockNumber"]].in.length > 0) ? 'Wallet Credit' : 'Wallet Debit' : 'Defi Dex';
         // console.log("uniqueAddress", uniqueAddress);
@@ -1373,32 +1441,39 @@ class App extends Component {
 
       result.result.map((transaction) => {
         if (blocks[transaction["blockNumber"]] == undefined) {
-          blocks[transaction["blockNumber"]] = { platform: { }, "type": "Normal", "transactions": [], "approve": [], "in": [], "out": [] };
+          blocks[transaction["blockNumber"]] = { platform: {}, "type": "Normal", "transactions": [], "approve": [], "in": [], "out": [] };
         }
         // console.log("blocks", blocks[transaction["blockNumber"]]);
         transaction['type'] = "Wallet Transaction";
 
         if (transaction.to == "0x10ed43c718714eb63d5aa57b78b54704e256024e" && transaction.value > 0) {
-          transaction.type = "Token Transfer";
-          transaction.tokenName = "Wrapped BNB";
-          transaction.tokenSymbol = "WBNB";
-          transaction.tokenDecimal = "18";
-
-          uniqueTokens[transaction.to] = {
-            'address': transaction.to,
-            'name': transaction["tokenName"],
-            'symbol': transaction["tokenSymbol"],
-            'decimal': parseInt(transaction["tokenDecimal"])
+          blocks[transaction["blockNumber"]].in.push({ contract: "0x10ed43c718714eb63d5aa57b78b54704e256024e", address: transaction.to, "tokenSymbol": "WBNB", "tokenName": "Wrapped BNB", "tokenDecimal": "18", "tokenValue": transaction.value })
+          var transactiona = {
+            ...transaction,
+            to: address.address,
+            from: "0x10ed43c718714eb63d5aa57b78b54704e256024e",
+            tokenName: "Wrapped BNB",
+            tokenSymbol: "WBNB",
+            tokenDecimal: "18",
+            tokenValue: transaction.value,
+            type: "Token Transfer"
           };
+          uniqueTokens[transaction.to] = {
+            'contract': '0x10ed43c718714eb63d5aa57b78b54704e256024e',
+            'address': transaction.to,
+            'name': transactiona["tokenName"],
+            'symbol': transactiona["tokenSymbol"],
+            'decimal': parseInt(transactiona["tokenDecimal"])
+          };
+          blocks[transaction["blockNumber"]].transactions.push(transactiona)
         }
-        
         blocks[transaction["blockNumber"]].transactions.push(transaction);
 
         (transaction.value == "0")
           ? blocks[transaction["blockNumber"]].approve.push({ "type": "Approve Transaction", "address": transaction.to, "name": (uniqueAddress[transaction.to] != undefined) ? uniqueAddress[transaction.to].name : "Unknown Approval" })
           : (transaction.to == address.address)
-            ? blocks[transaction["blockNumber"]].in.push({ address: address.address, "tokenSymbol": "BNB", "tokenName": "Binance Token", "tokenDecimal": "18", "tokenValue": transaction.value })
-            : blocks[transaction["blockNumber"]].out.push({ address: transaction.to, "tokenSymbol": "WBNB", "tokenName": "Wrapped BNB", "tokenDecimal": "18", "tokenValue": transaction.value })
+            ? blocks[transaction["blockNumber"]].in.push({ contract: "0x10ed43c718714eb63d5aa57b78b54704e256024e", address: address.address, "tokenSymbol": "WBNB", "tokenName": "Wrapped BNB", "tokenDecimal": "18", "tokenValue": transaction.value })
+            : blocks[transaction["blockNumber"]].out.push({ contract: "0x10ed43c718714eb63d5aa57b78b54704e256024e", address: address.address, "tokenSymbol": "WBNB", "tokenName": "Wrapped BNB", "tokenDecimal": "18", "tokenValue": transaction.value })
 
         blocks[transaction["blockNumber"]]['type'] = (blocks[transaction["blockNumber"]].type == 'Normal') ? (blocks[transaction["blockNumber"]].in.length > 0) ? 'Wallet Credit' : 'Wallet Debit' : 'Defi Dex';
         // console.log("uniqueAddress", uniqueAddress);
@@ -1422,7 +1497,7 @@ class App extends Component {
       })
     }
   }
-
+  
   handlePolygonAddressTransactions = result => {
     if (result.status === '1') {
       var address = this.state.address;
@@ -1437,7 +1512,7 @@ class App extends Component {
         transaction['type'] = "Wallet Transaction";
 
         if (transaction.to == "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2" && transaction.value > 0) {
-          blocks[transaction["blockNumber"]].in.push({ address: address.address, "tokenSymbol": "Weth", "tokenName": "Wrapped Ether", "tokenDecimal": "18", "tokenValue": transaction.value })
+          blocks[transaction["blockNumber"]].in.push({ address: address.address, "tokenSymbol": "Matic", "tokenName": "Wrapped Matic", "tokenDecimal": "18", "tokenValue": transaction.value })
           var transactiona = {
             ...transaction,
             to: address.address,
@@ -1455,8 +1530,8 @@ class App extends Component {
         (transaction.value == "0")
           ? blocks[transaction["blockNumber"]].approve.push({ "type": "Approve Transaction", "address": transaction.to, "name": (uniqueAddress[transaction.to] != undefined) ? uniqueAddress[transaction.to].name : "Unknown Approval" })
           : (transaction.to == address.address)
-            ? blocks[transaction["blockNumber"]].in.push({ address: address.address, "tokenSymbol": "Matic", "tokenName": "Matic", "tokenDecimal": "18", "tokenValue": transaction.value })
-            : blocks[transaction["blockNumber"]].out.push({ address: address.address, "tokenSymbol": "Matic", "tokenName": "Matic", "tokenDecimal": "18", "tokenValue": transaction.value })
+            ? blocks[transaction["blockNumber"]].in.push({ address: address.address, "tokenSymbol": "Matic", "tokenName": "Wrapped Matic", "tokenDecimal": "18", "tokenValue": transaction.value })
+            : blocks[transaction["blockNumber"]].out.push({ address: address.address, "tokenSymbol": "Matic", "tokenName": "Wrapped Matic", "tokenDecimal": "18", "tokenValue": transaction.value })
 
         blocks[transaction["blockNumber"]]['type'] = (blocks[transaction["blockNumber"]].type == 'Normal') ? (blocks[transaction["blockNumber"]].in.length > 0) ? 'Wallet Credit' : 'Wallet Debit' : 'Defi Dex';
         // console.log("uniqueAddress", uniqueAddress);
