@@ -24,11 +24,13 @@
   ],
   "dependencies": {
     "bscscan-api": "^1.0.1",
-    "polygonscan-api": "^1.0.3",
     "erc20-contract-js": "^1.1.1",
     "etherscan-api": "10.0.5",
     "ethplorer-js": "^0.0.7",
+    "fs": "0.0.1-security",
     "moment": "^2.29.1",
+    "net": "^1.0.2",
+    "polygonscan-api": "^1.0.3",
     "react": "^16.4.1",
     "react-dom": "^16.4.1",
     "react-scripts": "^4.0.3",
@@ -36,7 +38,7 @@
     "web3": "^1.5.1"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "PORT=3001 react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject"

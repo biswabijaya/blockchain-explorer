@@ -25,3 +25,5 @@ yarn-error.log*
 config.js
 
 
+/crawl/historical/
+/crawl/indexed/

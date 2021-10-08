@@ -8,6 +8,7 @@ import * as ethplorer from './api/ethplorer'
 import * as etherscan from './api/etherscan'
 import * as bscscan from './api/bscscan'
 import * as polygonscan from './api/polygonscan'
+import * as historyApi from './api/history'
 import {
   Button,
   Grid,
@@ -157,6 +158,8 @@ if (localStorage.getItem('addr')) {
   localStorage.setItem('addr', addr);
 }
 
+
+
 class App extends Component {
   constructor (props) {
     super(props)
@@ -184,6 +187,8 @@ class App extends Component {
     etherscan.getEthSupply(this.handleEthSupply, this.onError)
     etherscan.getEthPrice(this.handleEthPrice, this.onError)
   }
+
+  
 
   componentWillUnmount () {
     clearInterval(this.timerID)
@@ -241,6 +246,7 @@ class App extends Component {
 
   handleAddressInfo = address => {
     address.etheriumLiquidityPoolsByBlock = etherscan.getLiquidityPools(address.address);
+    // console.log(address.etheriumLiquidityPoolsByBlock);
     address.binanceLiquidityPoolsByBlock = "";
     address.polygonLiquidityPoolsByBlock = "";
 
@@ -1223,16 +1229,52 @@ class App extends Component {
     return liquidity_pool;
   }
 
+
   handleEtheriumTokenTransfers = result => {
     if (result.status === '1') {
       var address = this.state.address;
       var blocks = {};
-      //find unique tokens
+      var tokenArraySymbol = [];
+      var tokenArrayDates = [];
+
       result.result.map((transaction) => {
         //combine blocks
+
+        //get list of tokens and dates
+        if (tokenArraySymbol.indexOf(transaction.tokenSymbol) == -1) {
+          tokenArraySymbol.push(transaction.tokenSymbol);
+          tokenArrayDates[tokenArraySymbol.length - 1] = [];
+        }
+
+        let tokenIndex = tokenArraySymbol.indexOf(transaction.tokenSymbol);
+
+        if (tokenArrayDates[tokenIndex].indexOf((moment(transaction.timeStamp * 1000).format("YYYYMMDD"))) == -1) {
+          tokenArrayDates[tokenIndex].push(moment(transaction.timeStamp * 1000).format("YYYYMMDD"));
+        }
+
+      });
+
+      historyApi.getHistoricalPrice(tokenArraySymbol, tokenArrayDates).then((response) => {
+        console.log("&&&&&&&&&&&&&&&&&&&&", tokenArraySymbol, tokenArrayDates, response.data);
+        // transaction['priceUSD'] = parseFloat(response.data.data?.price);
+        // console.log("^^^ called", transaction["tokenSymbol"], transaction['priceUSD'], moment(transaction.timeStamp * 1000).format("YYYYMMDD"));
+      });
+
+
+
+
+      //find unique tokens 
+      result.result.map((transaction) => {
+        //combine blocks
+        
         if (blocks[transaction["blockNumber"]] == undefined) {
           blocks[transaction["blockNumber"]] = { "platform": { }, "type": "Defi", "transactions": [], "approve": [], "in": [], "out": [] };
         }
+        transaction['priceUSD']=0;
+        // historyApi.getHistoricalPrice(transaction["tokenSymbol"], moment(transaction.timeStamp * 1000).format("YYYYMMDD")).then((response) => {
+        //   transaction['priceUSD'] = parseFloat(response.data.data?.price);
+        //   console.log("^^^ called", transaction["tokenSymbol"], transaction['priceUSD'], moment(transaction.timeStamp * 1000).format("YYYYMMDD"));
+        // });
         blocks[transaction["blockNumber"]].transactions.push(transaction);
         // console.log(transaction["blockNumber"], transaction.value, transaction);
         transaction['type'] = "Token Transfer";
